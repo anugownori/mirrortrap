@@ -28,9 +28,10 @@ import { useApp } from '@/lib/useApp';
 import type { Finding, ScanResult, ScanSource, Severity } from '@/lib/types';
 import { DEMO_SCAN } from '@/lib/mockData';
 import { describePort, runRealScan, sourceHIBP } from '@/lib/scanApi';
-import { Mail } from 'lucide-react';
+import { Mail, Building2, AtSign } from 'lucide-react';
 import { arsColor, cn, sleep } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
+import { EmailScanFlow } from '@/components/EmailScanFlow';
 
 const SOURCES: Array<{
   key: ScanSource;
@@ -619,6 +620,8 @@ export function ScanPage() {
   const initial = params.get('domain') ?? '';
   const auto = params.get('auto') === '1';
   const { demoMode, addScan } = useApp();
+  const [mode, setMode] = useState<'company' | 'email'>('company');
+  const domainInputRef = useRef<HTMLInputElement>(null);
   const [domain, setDomain] = useState(initial);
   const [email, setEmail] = useState('');
   const [emailPhase, setEmailPhase] = useState<'idle' | 'scanning' | 'done'>('idle');
@@ -741,6 +744,49 @@ export function ScanPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-col gap-2 rounded-xl border border-border bg-bg-card/40 p-2 sm:flex-row sm:items-center sm:gap-3 sm:p-2">
+        <span className="px-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 sm:px-1">
+          Scan mode
+        </span>
+        <div className="flex flex-1 gap-1">
+          <button
+            type="button"
+            onClick={() => setMode('company')}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-bold uppercase tracking-widest transition',
+              mode === 'company'
+                ? 'bg-brand-purple text-white shadow-[0_0_24px_-8px_rgba(167,139,250,0.7)]'
+                : 'text-slate-400 hover:text-white',
+            )}
+            aria-pressed={mode === 'company'}
+          >
+            <Building2 className="h-3.5 w-3.5" /> Company Domain
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('email')}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-[12px] font-bold uppercase tracking-widest transition',
+              mode === 'email'
+                ? 'bg-brand-purple text-white shadow-[0_0_24px_-8px_rgba(167,139,250,0.7)]'
+                : 'text-slate-400 hover:text-white',
+            )}
+            aria-pressed={mode === 'email'}
+          >
+            <AtSign className="h-3.5 w-3.5" /> Personal Email
+          </button>
+        </div>
+      </div>
+
+      {mode === 'email' ? (
+        <EmailScanFlow
+          onSwitchToDomain={() => {
+            setMode('company');
+            setTimeout(() => domainInputRef.current?.focus(), 50);
+          }}
+        />
+      ) : (
+        <>
       <div className="card p-5">
         <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
           <Radar className="h-3.5 w-3.5" /> Attack-surface scan
@@ -754,6 +800,7 @@ export function ScanPage() {
           <div className="relative flex-1">
             <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
             <input
+              ref={domainInputRef}
               value={domain}
               onChange={(e) => setDomain(e.target.value)}
               placeholder="company.com"
@@ -997,6 +1044,8 @@ export function ScanPage() {
           <KillChainTimeline ars={result.ars_score} />
         </>
       ) : null}
+        </>
+      )}
     </div>
   );
 }
