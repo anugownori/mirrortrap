@@ -18,6 +18,7 @@ import { Logo } from './Logo';
 import { useApp } from '@/lib/useApp';
 import { cn, formatDate } from '@/lib/utils';
 import { ArsBadge } from './ui/ArsBadge';
+import { EnterpriseDemo } from './EnterpriseDemo';
 import { useEffect, useRef, useState } from 'react';
 
 const NAV = [
@@ -77,48 +78,75 @@ function ShortcutsModal({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const navigate = useNavigate();
   if (!open) return null;
+  return <UpgradeModalInner onClose={onClose} />;
+}
+
+function UpgradeModalInner({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const [demoOpen, setDemoOpen] = useState(false);
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-6 animate-fade-in"
-      onClick={onClose}
-    >
-      <div className="card w-full max-w-md p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-4 flex items-center justify-between">
-          <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
-            <ShieldCheck className="h-4 w-4" /> Enterprise feature
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-100" aria-label="Close">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="flex flex-col items-center text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-amber/40 bg-brand-amber/10 text-brand-amber">
-            <ShieldCheck className="h-7 w-7" />
-          </div>
-          <div className="mt-4 text-xl font-bold text-white">Autonomous defense</div>
-          <p className="mt-2 text-sm text-slate-400">
-            Available on the Enterprise plan (₹9,999/month). Upgrade to let MirrorTrap fight
-            attackers automatically — no human intervention needed.
-          </p>
-        </div>
-        <div className="mt-5 flex justify-center gap-3">
-          <button
-            className="btn-primary !bg-brand-amber hover:!bg-brand-amber"
-            onClick={() => {
-              onClose();
-              navigate('/#pricing');
-            }}
+    <>
+      {!demoOpen ? (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-6 animate-fade-in"
+          onClick={onClose}
+        >
+          <div
+            className="card w-full max-w-md p-6 shadow-glow"
+            onClick={(e) => e.stopPropagation()}
           >
-            Upgrade to Enterprise
-          </button>
-          <button className="btn-ghost" onClick={onClose}>
-            Cancel
-          </button>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
+                <ShieldCheck className="h-4 w-4" /> Enterprise feature
+              </div>
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-slate-100"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-amber/40 bg-brand-amber/10 text-brand-amber">
+                <ShieldCheck className="h-7 w-7" />
+              </div>
+              <div className="mt-4 text-xl font-bold text-white">Autonomous defense</div>
+              <p className="mt-2 text-sm text-slate-400">
+                Available on the Enterprise plan (₹9,999/month). Upgrade to let MirrorTrap fight
+                attackers automatically — no human intervention needed.
+              </p>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-center gap-3">
+              <button
+                className="btn-primary !bg-brand-amber hover:!bg-brand-amber"
+                onClick={() => {
+                  onClose();
+                  navigate('/#pricing');
+                }}
+              >
+                Upgrade to Enterprise
+              </button>
+              <button className="btn-ghost" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                className="btn-ghost !border-brand-amber/40 !text-brand-amber"
+                onClick={() => setDemoOpen(true)}
+              >
+                <Sparkles className="h-4 w-4" /> Show Demo
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      ) : null}
+      <EnterpriseDemo
+        open={demoOpen}
+        onClose={onClose}
+        onBackToPlans={() => setDemoOpen(false)}
+      />
+    </>
   );
 }
 
