@@ -332,7 +332,7 @@ function RegionalThreatChart() {
             {HOT_IPS.map((h) => (
               <li
                 key={h.ip}
-                className="flex items-center gap-2 rounded-lg border border-border bg-bg-terminal/50 p-2"
+                className="flex items-center gap-2 rounded-2xl border border-border bg-bg-terminal/50 p-2"
               >
                 <span className="text-base">{h.flag}</span>
                 <div className="min-w-0 flex-1">
@@ -478,7 +478,7 @@ export function AlertsPage() {
             <AnimatedCounter
               value={today}
               flash={counterFlash}
-              className="font-mono text-5xl font-bold text-brand-danger tabular-nums"
+              className="font-display text-5xl font-bold text-brand-danger tabular-nums"
             />
             <span className="text-sm text-slate-400">tripwires fired today</span>
           </div>
@@ -525,7 +525,7 @@ export function AlertsPage() {
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-danger">
             <Bot className="h-3 w-3" /> Automated Bots
           </div>
-          <div className="mt-1 font-mono text-3xl text-brand-danger tabular-nums">
+          <div className="mt-1 font-display text-3xl font-bold text-brand-danger tabular-nums">
             {stats.bots}
           </div>
         </div>
@@ -533,7 +533,7 @@ export function AlertsPage() {
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-red-300">
             <ShieldAlert className="h-3 w-3" /> Human Attackers
           </div>
-          <div className="mt-1 font-mono text-3xl text-red-300 tabular-nums">
+          <div className="mt-1 font-display text-3xl font-bold text-red-300 tabular-nums">
             {stats.humans}
           </div>
         </div>
@@ -541,7 +541,7 @@ export function AlertsPage() {
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-amber">
             <Flag className="h-3 w-3" /> IPs Flagged
           </div>
-          <div className="mt-1 font-mono text-3xl text-brand-amber tabular-nums">
+          <div className="mt-1 font-display text-3xl font-bold text-brand-amber tabular-nums">
             {stats.flagged} <span className="text-sm text-slate-500">/ {stats.uniqueIps}</span>
           </div>
         </div>

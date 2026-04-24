@@ -24,46 +24,154 @@ body {
   background-attachment: fixed;
 }
 
+/* ── Noise / grain overlay ─────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ── Page entrance transition ──────────────────────────── */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: page-enter 400ms ease-out both;
+}
+
+/* ── Marquee ───────────────────────────────────────────── */
+@keyframes marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee-scroll 30s linear infinite;
+}
+
+/* ── Scanline overlay for terminals ───────────────────── */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: repeating-linear-gradient(
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+}
+
 @layer components {
+  /* ── Cards / Surfaces ─────────────────────────────── */
   .card {
-    @apply rounded-xl border border-border bg-bg-surface;
+    background: rgba(26, 23, 48, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(127, 119, 221, 0.12);
+    border-radius: 16px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
   .card-hover {
-    @apply transition-all hover:border-border-strong hover:shadow-glow;
+    @apply transition-all;
   }
+  .card-hover:hover {
+    border-color: rgba(127, 119, 221, 0.35);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 0 20px rgba(127, 119, 221, 0.12);
+  }
+
+  /* ── Buttons — all pill-shaped ─────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-xs font-medium uppercase tracking-wider transition-all duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply btn bg-brand-purple text-white hover:shadow-glow hover:brightness-110;
+    @apply btn bg-brand-purple text-white;
+  }
+  .btn-primary:hover {
+    @apply brightness-110;
+    box-shadow: 0 0 20px rgba(127, 119, 221, 0.5);
+    transform: translateY(-1px);
   }
   .btn-amber {
-    @apply btn bg-brand-amber text-[#1a1100] hover:shadow-glow-amber hover:brightness-110;
+    @apply btn bg-brand-amber text-[#1a1100];
+  }
+  .btn-amber:hover {
+    @apply brightness-110;
+    box-shadow: 0 0 20px rgba(239, 159, 39, 0.5);
+    transform: translateY(-1px);
   }
   .btn-ghost {
-    @apply btn border border-border text-slate-200 hover:border-border-strong hover:bg-white/5;
+    @apply btn text-brand-purple;
+    border: 1px solid rgba(127, 119, 221, 0.3);
+  }
+  .btn-ghost:hover {
+    border-color: #7f77dd;
+    background: rgba(127, 119, 221, 0.08);
   }
   .btn-danger {
-    @apply btn bg-brand-danger/90 text-[#2a0a0a] hover:shadow-glow-danger hover:brightness-110;
+    @apply btn;
+    border: 1px solid rgba(240, 149, 149, 0.3);
+    color: #f09595;
   }
+  .btn-danger:hover {
+    border-color: #f09595;
+    background: rgba(240, 149, 149, 0.1);
+    transform: translateY(-1px);
+  }
+
+  /* ── Pill tag ──────────────────────────────────────── */
   .pill {
     @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-white/5 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-slate-300;
   }
+
+  /* ── Severity badges — pill style ──────────────────── */
   .severity-critical {
-    @apply bg-brand-danger/15 text-brand-danger border-brand-danger/40;
+    background: rgba(240, 149, 149, 0.1);
+    border-color: rgba(240, 149, 149, 0.3);
+    color: #f09595;
   }
   .severity-high {
-    @apply bg-brand-amber/15 text-brand-amber border-brand-amber/40;
+    background: rgba(239, 159, 39, 0.1);
+    border-color: rgba(239, 159, 39, 0.3);
+    color: #ef9f27;
   }
   .severity-medium {
-    @apply bg-yellow-400/10 text-yellow-300 border-yellow-400/30;
+    background: rgba(127, 119, 221, 0.1);
+    border-color: rgba(127, 119, 221, 0.3);
+    color: #7f77dd;
   }
   .severity-low {
-    @apply bg-brand-success/15 text-brand-success border-brand-success/40;
+    background: rgba(29, 158, 117, 0.1);
+    border-color: rgba(29, 158, 117, 0.3);
+    color: #1d9e75;
   }
+
+  /* ── Terminal ──────────────────────────────────────── */
   .terminal {
-    @apply rounded-xl border border-border bg-bg-terminal p-4 font-mono text-[13px] leading-relaxed;
+    @apply relative rounded-2xl border border-border bg-bg-terminal p-4 font-mono text-[13px] leading-relaxed;
   }
+
+  /* ── Skeleton ──────────────────────────────────────── */
   .skeleton {
     background: linear-gradient(
       90deg,
@@ -74,19 +182,41 @@ body {
     background-size: 1400px 100%;
     @apply animate-shimmer rounded-md;
   }
+
+  /* ── Section pre-label ─────────────────────────────── */
+  .section-label {
+    @apply flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-brand-purple/60;
+  }
+  .section-label::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 2px;
+    background: rgba(127, 119, 221, 0.4);
+    border-radius: 2px;
+  }
+
+  /* ── Glow utilities ────────────────────────────────── */
+  .glow-purple {
+    box-shadow: 0 0 20px rgba(127, 119, 221, 0.4);
+  }
+  .glow-amber {
+    box-shadow: 0 0 20px rgba(239, 159, 39, 0.4);
+  }
 }
 
+/* ── Scrollbar — thin 4px ──────────────────────────────── */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0814;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(127, 119, 221, 0.25);
+  background: rgba(127, 119, 221, 0.3);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(127, 119, 221, 0.45);
+  background: rgba(127, 119, 221, 0.6);
 }

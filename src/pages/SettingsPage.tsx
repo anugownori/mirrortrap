@@ -81,7 +81,7 @@ export function SettingsPage() {
         <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
           <Settings className="h-3.5 w-3.5" /> Settings
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-white">Workspace preferences</h1>
+        <h1 className="mt-1 font-display text-2xl font-bold text-white">Workspace preferences</h1>
       </div>
 
       <div className="card p-5">
@@ -109,7 +109,7 @@ export function SettingsPage() {
           {INTEGRATIONS.map((i) => (
             <div
               key={i.id}
-              className="rounded-lg border border-border bg-bg-terminal/40 p-4"
+              className="rounded-2xl border border-border bg-bg-terminal/40 p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export function SettingsPage() {
                   value={keys[i.id] ?? ''}
                   onChange={(e) => setKeys((k) => ({ ...k, [i.id]: e.target.value }))}
                   placeholder={i.placeholder}
-                  className="flex-1 rounded-lg border border-border bg-bg-terminal px-3 py-2 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-purple focus:outline-none"
+                  className="flex-1 rounded-full border border-border bg-bg-terminal px-3 py-2 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-purple focus:outline-none"
                 />
                 <button
                   onClick={() => testConnection(i.id, i.label)}

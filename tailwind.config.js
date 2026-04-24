@@ -24,16 +24,18 @@ export default {
           success: '#1D9E75',
         },
         border: {
-          DEFAULT: 'rgba(127,119,221,0.25)',
-          strong: 'rgba(127,119,221,0.45)',
+          DEFAULT: 'rgba(127,119,221,0.15)',
+          strong: 'rgba(127,119,221,0.35)',
         },
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Space Grotesk', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
       },
       borderRadius: {
         xl: '12px',
+        '2xl': '16px',
         lg: '10px',
       },
       boxShadow: {
@@ -41,6 +43,7 @@ export default {
         'glow-amber': '0 0 0 1px rgba(239,159,39,0.4), 0 10px 40px -10px rgba(239,159,39,0.5)',
         'glow-success': '0 0 0 1px rgba(29,158,117,0.4), 0 10px 30px -10px rgba(29,158,117,0.5)',
         'glow-danger': '0 0 0 1px rgba(240,149,149,0.5), 0 10px 30px -10px rgba(240,149,149,0.5)',
+        'nav-pill': '0 0 0 1px rgba(127,119,221,0.1), 0 8px 32px rgba(0,0,0,0.4)',
       },
       keyframes: {
         'fade-in': {

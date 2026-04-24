@@ -8,12 +8,11 @@ import {
   Ghost,
   Radar,
   ShieldHalf,
-  Sparkles,
   Zap,
 } from 'lucide-react';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { Logo } from '@/components/Logo';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const HERO_TERMINAL_LINES: Array<{ text: string; tone: 'dim' | 'ok' | 'warn' | 'err' | 'cmd' }> = [
   { text: '$ mirrortrap scan targetcompany.com', tone: 'cmd' },
@@ -36,10 +35,95 @@ const HERO_TERMINAL_LINES: Array<{ text: string; tone: 'dim' | 'ok' | 'warn' | '
 const toneColor = {
   cmd: 'text-brand-purple',
   dim: 'text-slate-500',
-  ok: 'text-brand-success',
+  ok: 'text-[#00FF88]',
   warn: 'text-brand-amber',
   err: 'text-brand-danger',
 } as const;
+
+/* ── Particle mesh canvas ─────────────────────────────── */
+function ParticleMesh() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let raf = 0;
+    const PARTICLE_COUNT = 120;
+    const CONNECT_DIST = 150;
+
+    interface Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+    }
+
+    const resize = () => {
+      canvas.width = canvas.offsetWidth * devicePixelRatio;
+      canvas.height = canvas.offsetHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const w = () => canvas.offsetWidth;
+    const h = () => canvas.offsetHeight;
+
+    const particles: Particle[] = Array.from({ length: PARTICLE_COUNT }, () => ({
+      x: Math.random() * w(),
+      y: Math.random() * h(),
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, w(), h());
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > w()) p.vx *= -1;
+        if (p.y < 0 || p.y > h()) p.vy *= -1;
+      }
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < CONNECT_DIST) {
+            const alpha = 0.12 * (1 - dist / CONNECT_DIST);
+            ctx.strokeStyle = `rgba(127,119,221,${alpha})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      for (const p of particles) {
+        ctx.fillStyle = 'rgba(127,119,221,0.4)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+  return (
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none absolute inset-0 h-full w-full"
+      aria-hidden
+    />
+  );
+}
 
 function HeroTerminal() {
   const [visible, setVisible] = useState(1);
@@ -50,12 +134,12 @@ function HeroTerminal() {
     return () => clearInterval(int);
   }, []);
   return (
-    <div className="terminal relative h-[280px] overflow-hidden shadow-glow">
-      <div className="mb-2 flex items-center gap-1.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-brand-danger/80" />
-        <span className="h-2.5 w-2.5 rounded-full bg-brand-amber/80" />
-        <span className="h-2.5 w-2.5 rounded-full bg-brand-success/80" />
-        <span className="ml-2 text-[11px] text-slate-500">mirrortrap — live scan</span>
+    <div className="terminal scanlines relative h-[280px] overflow-hidden shadow-glow">
+      <div className="mb-3 flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full bg-[#FF5F57]" />
+        <span className="h-2 w-2 rounded-full bg-[#FFBD2E]" />
+        <span className="h-2 w-2 rounded-full bg-[#28CA42]" />
+        <span className="ml-2 font-mono text-[11px] text-slate-500">mirrortrap — live scan</span>
       </div>
       <div className="space-y-0.5">
         {HERO_TERMINAL_LINES.slice(0, visible).map((line, i) => (
@@ -74,8 +158,8 @@ function HeroTerminal() {
 function StatCallout({ value, label }: { value: string; label: string }) {
   return (
     <div className="card card-hover p-5">
-      <div className="text-3xl font-bold text-white">{value}</div>
-      <div className="mt-1 text-xs uppercase tracking-widest text-slate-400">{label}</div>
+      <div className="font-display text-3xl font-bold text-white">{value}</div>
+      <div className="mt-1 text-xs uppercase tracking-widest text-white/40">{label}</div>
     </div>
   );
 }
@@ -171,67 +255,84 @@ const HOW_IT_WORKS = [
   },
 ];
 
+const MARQUEE_TEXT =
+  'OSINT SCAN \u00B7 HONEYPOT DECOYS \u00B7 REAL-TIME ALERTS \u00B7 ARS SCORING \u00B7 THREAT INTELLIGENCE \u00B7 ';
+
 export function LandingPage() {
   usePageTitle('MirrorTrap — See yourself through a hacker\u2019s eyes');
   return (
-    <div className="animate-fade-in">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-border/40 bg-[#0D0B1A]/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center px-6">
+    <div className="page-enter">
+      {/* ── Floating pill navbar ──────────────────────────── */}
+      <header className="pointer-events-none fixed left-0 right-0 top-0 z-50 flex justify-center px-4 pt-6">
+        <nav
+          className="pointer-events-auto flex items-center gap-1 rounded-full border border-white/[0.08] px-3 py-1.5 shadow-nav-pill"
+          style={{
+            background: 'rgba(26,23,48,0.75)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            borderColor: 'rgba(127,119,221,0.2)',
+          }}
+        >
           <Logo />
-          <nav className="ml-auto flex items-center gap-6 text-sm text-slate-300">
-            <a href="#features" className="hover:text-white">
-              Features
-            </a>
-            <a href="#pricing" className="hover:text-white">
-              Pricing
-            </a>
-            <Link to="/login" className="hover:text-white">
-              Sign in
-            </Link>
-            <Link to="/scan" className="btn-primary">
-              Scan Your Domain Free
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </nav>
-        </div>
+          <div className="mx-3 h-5 w-px bg-white/10" />
+          <a
+            href="#features"
+            className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            Features
+          </a>
+          <a
+            href="#pricing"
+            className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            Pricing
+          </a>
+          <div className="mx-2 h-5 w-px bg-white/10" />
+          <Link
+            to="/login"
+            className="rounded-full px-4 py-2 text-xs font-medium uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            Sign in
+          </Link>
+          <Link to="/scan" className="btn-primary !py-2 !text-[10px]">
+            Scan Free
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </nav>
       </header>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10"
-          style={{
-            background:
-              'radial-gradient(600px 320px at 20% 10%, rgba(127,119,221,0.25), transparent 60%), radial-gradient(500px 240px at 85% 20%, rgba(239,159,39,0.12), transparent 60%)',
-          }}
-        />
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 pt-16 pb-10 lg:grid-cols-2 lg:gap-14 lg:pt-24 lg:pb-16">
+      {/* ── Hero ─────────────────────────────────────────── */}
+      <section className="relative min-h-screen overflow-hidden">
+        <ParticleMesh />
+        <div className="relative mx-auto grid max-w-6xl grid-cols-1 gap-10 px-6 pt-32 pb-16 lg:grid-cols-2 lg:gap-14 lg:pt-40 lg:pb-20">
           <div>
-            <span className="pill border-brand-purple/40 text-brand-purple">
-              <Sparkles className="h-3 w-3" /> See yourself through a hacker&apos;s eyes
-            </span>
-            <h1 className="mt-4 text-4xl font-bold leading-[1.05] tracking-tight text-white md:text-[56px]">
-              Hackers Study You <span className="text-brand-purple">Before Striking.</span>
+            <h1
+              className="font-display font-bold leading-[0.95] tracking-[-0.03em] text-white"
+              style={{ fontSize: 'clamp(3.5rem, 8vw, 8rem)' }}
+            >
+              SEE YOURSELF
               <br />
-              MirrorTrap Shows You <span className="text-brand-amber">What They See.</span>
+              THROUGH A<br />
+              <span className="text-brand-purple">HACKER&apos;S EYES</span>
             </h1>
-            <p className="mt-5 max-w-xl text-base text-slate-400 md:text-lg">
-              Scan your company&apos;s public attack surface. Deploy AI-generated decoy traps. Catch
-              attackers before they reach your real systems.
+            <p className="mt-6 max-w-lg text-lg font-light leading-relaxed text-white/55">
+              Scan your company&apos;s public attack surface. Deploy AI-generated decoy traps.
+              Catch attackers before they reach your real systems.
             </p>
-            <div className="mt-7 flex flex-wrap items-center gap-3">
-              <Link to="/scan" className="btn-primary !px-5 !py-3 !text-[15px]">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
+              <Link to="/scan" className="btn-primary !px-7 !py-3.5 !text-sm">
                 Scan Your Domain Free
                 <ArrowRight className="h-4 w-4" />
               </Link>
-              <Link to="/login" className="btn-ghost !px-5 !py-3 !text-[15px]">
+              <Link
+                to="/login"
+                className="btn-ghost !px-7 !py-3.5 !text-sm"
+              >
                 See a live demo
               </Link>
             </div>
-            <div className="mt-3 text-[11px] uppercase tracking-widest text-slate-500">
-              No credit card · 1-minute scan · Data never stored without consent
+            <div className="mt-4 text-[11px] uppercase tracking-widest text-slate-500">
+              No credit card &middot; 1-minute scan &middot; Data never stored without consent
             </div>
           </div>
           <div className="relative">
@@ -240,33 +341,50 @@ export function LandingPage() {
         </div>
 
         {/* Stat callouts */}
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 px-6 pb-16 md:grid-cols-3">
+        <div className="relative mx-auto grid max-w-6xl grid-cols-1 gap-4 px-6 pb-8 md:grid-cols-3">
           <StatCallout value="91%" label="of breaches start with reconnaissance" />
           <StatCallout value="4.2hrs" label="average time from recon to breach" />
           <StatCallout value="$4.9M" label="average breach cost in 2024" />
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="border-t border-border/50">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="mb-10 max-w-2xl">
-            <div className="pill">Platform</div>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
+      {/* ── Marquee strip ────────────────────────────────── */}
+      <div
+        className="overflow-hidden border-y py-3"
+        style={{ borderColor: 'rgba(127,119,221,0.1)' }}
+      >
+        <div className="animate-marquee flex whitespace-nowrap">
+          {[0, 1].map((i) => (
+            <span
+              key={i}
+              className="text-xs uppercase tracking-widest text-white/20"
+            >
+              {MARQUEE_TEXT.repeat(6)}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Features ─────────────────────────────────────── */}
+      <section id="features" className="border-t" style={{ borderColor: 'rgba(127,119,221,0.08)' }}>
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="mb-12 max-w-2xl">
+            <div className="section-label">Platform</div>
+            <h2 className="mt-4 font-display text-3xl font-bold tracking-tight text-white md:text-4xl">
               Reconnaissance, weaponized for the defender.
             </h2>
-            <p className="mt-2 text-slate-400">
+            <p className="mt-3 text-slate-400">
               Four modules. One mission: watch yourself the way a nation-state would — then set traps.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {FEATURES.map(({ icon: Icon, title, body }) => (
-              <div key={title} className="card card-hover flex gap-4 p-5">
-                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-purple/15 text-brand-purple">
+              <div key={title} className="card card-hover flex gap-4 p-6">
+                <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-purple/15 text-brand-purple">
                   <Icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-lg font-semibold text-white">{title}</div>
+                  <div className="font-display text-lg font-semibold text-white">{title}</div>
                   <div className="mt-1 text-sm text-slate-400">{body}</div>
                 </div>
               </div>
@@ -275,15 +393,15 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section id="how" className="border-t border-border/50">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="mb-10 max-w-2xl">
-            <div className="pill">How it works</div>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
+      {/* ── How It Works ─────────────────────────────────── */}
+      <section id="how" className="border-t" style={{ borderColor: 'rgba(127,119,221,0.08)' }}>
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="mb-12 max-w-2xl">
+            <div className="section-label">How it works</div>
+            <h2 className="mt-4 font-display text-3xl font-bold tracking-tight text-white md:text-4xl">
               Three steps. One hour. No SIEM required.
             </h2>
-            <p className="mt-2 text-slate-400">
+            <p className="mt-3 text-slate-400">
               From the attacker's OSINT window to the moment a tripwire fires — every layer
               captured in a single workflow.
             </p>
@@ -291,16 +409,16 @@ export function LandingPage() {
           <div className="relative grid grid-cols-1 gap-4 md:grid-cols-3">
             {HOW_IT_WORKS.map((s, i) => (
               <div key={s.title} className="relative">
-                <div className="card card-hover h-full p-5">
+                <div className="card card-hover h-full p-6">
                   <div
                     className={
-                      'inline-flex h-11 w-11 items-center justify-center rounded-lg border ' +
+                      'inline-flex h-11 w-11 items-center justify-center rounded-xl border ' +
                       s.tone
                     }
                   >
                     <s.icon className="h-5 w-5" />
                   </div>
-                  <div className="mt-3 text-lg font-semibold text-white">{s.title}</div>
+                  <div className="mt-4 font-display text-lg font-semibold text-white">{s.title}</div>
                   <div className="mt-1 text-sm text-slate-400">{s.body}</div>
                 </div>
                 {i < HOW_IT_WORKS.length - 1 ? (
@@ -314,39 +432,41 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="border-t border-border/50">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="mb-10 max-w-2xl">
-            <div className="pill">Pricing</div>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-white md:text-4xl">
+      {/* ── Pricing ──────────────────────────────────────── */}
+      <section id="pricing" className="border-t" style={{ borderColor: 'rgba(127,119,221,0.08)' }}>
+        <div className="mx-auto max-w-6xl px-6 py-24">
+          <div className="mb-12 max-w-2xl">
+            <div className="section-label">Pricing</div>
+            <h2 className="mt-4 font-display text-3xl font-bold tracking-tight text-white md:text-4xl">
               Built for hackathon-stage teams and seed-stage security leads.
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
             {PRICING.map((p) => (
               <div
                 key={p.name}
                 className={
-                  'card p-6 ' +
-                  (p.featured ? 'border-brand-purple/60 shadow-glow' : 'card-hover')
+                  'card p-6 transition-transform ' +
+                  (p.featured
+                    ? 'relative scale-[1.03] border-brand-purple/60 glow-purple'
+                    : 'card-hover')
                 }
               >
                 {p.featured ? (
-                  <div className="mb-3 inline-block rounded-md bg-brand-purple/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-purple">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-purple px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white shadow-glow">
                     Most Popular
                   </div>
                 ) : null}
-                <div className="text-sm uppercase tracking-widest text-slate-400">{p.name}</div>
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-4xl font-bold text-white">{p.price}</span>
+                <div className="text-xs uppercase tracking-widest text-slate-400">{p.name}</div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="font-display text-5xl font-bold text-white">{p.price}</span>
                   {p.suffix ? <span className="text-sm text-slate-400">{p.suffix}</span> : null}
                 </div>
-                <div className="mt-1 text-sm text-slate-400">{p.tagline}</div>
-                <ul className="mt-5 space-y-2 text-sm text-slate-300">
+                <div className="mt-1 text-sm text-white/60">{p.tagline}</div>
+                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
                   {p.features.map((f) => (
                     <li key={f} className="flex gap-2">
-                      <Check className="mt-0.5 h-4 w-4 text-brand-success" />
+                      <Check className="mt-0.5 h-4 w-4 text-brand-purple" />
                       {f}
                     </li>
                   ))}
@@ -363,20 +483,21 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="border-t border-border/50">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-6 py-16 md:grid-cols-2">
+      {/* ── PhantomShield callout ─────────────────────────── */}
+      <section className="border-t" style={{ borderColor: 'rgba(127,119,221,0.08)' }}>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 px-6 py-20 md:grid-cols-2">
           <div>
-            <div className="pill border-brand-amber/40 text-brand-amber">
-              <ShieldHalf className="h-3 w-3" /> PhantomShield
+            <div className="section-label">
+              <ShieldHalf className="h-3 w-3 text-brand-amber" /> PhantomShield
             </div>
-            <h3 className="mt-3 text-2xl font-bold text-white md:text-3xl">
+            <h3 className="mt-4 font-display text-2xl font-bold text-white md:text-3xl">
               The decoy layer your SOC didn&apos;t know it was missing.
             </h3>
-            <p className="mt-2 text-slate-400">
+            <p className="mt-3 text-slate-400">
               Fake AWS keys, honey admin portals, tracking URLs. If anyone touches them, you know —
               with the IP, timing, and inferred intent. No SIEM required.
             </p>
-            <Link to="/signup" className="btn-amber mt-5">
+            <Link to="/signup" className="btn-amber mt-6">
               Deploy PhantomShield <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -384,7 +505,7 @@ export function LandingPage() {
             <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
               <Bot className="h-3.5 w-3.5" /> Live tripwire feed
             </div>
-            <div className="terminal">
+            <div className="terminal scanlines">
               <div className="text-brand-danger">
                 [14:32:07] Honey token accessed — IP 185.220.101.47 — 🇷🇴 Romania
               </div>
@@ -399,11 +520,12 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-border/50">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 text-xs text-slate-500 md:flex-row">
+      {/* ── Footer ───────────────────────────────────────── */}
+      <footer className="border-t" style={{ borderColor: 'rgba(127,119,221,0.08)' }}>
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-8 text-xs text-slate-500 md:flex-row">
           <div className="flex items-center gap-2">
             <Logo size={16} />
-            <span>© {new Date().getFullYear()} MirrorTrap. Built for defenders.</span>
+            <span>&copy; {new Date().getFullYear()} MirrorTrap. Built for defenders.</span>
           </div>
           <div className="flex gap-4">
             <Link to="/login" className="hover:text-slate-200">

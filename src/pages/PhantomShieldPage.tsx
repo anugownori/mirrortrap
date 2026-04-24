@@ -65,7 +65,7 @@ function DecoyCard({ d, onOpen }: { d: Decoy; onOpen: (d: Decoy) => void }) {
         </div>
         <Switch checked={d.active} onCheckedChange={() => toggleDecoy(d.id)} />
       </div>
-      <div className="space-y-1 rounded-lg border border-border bg-bg-terminal/60 p-3 font-mono text-[12px] text-slate-300">
+      <div className="space-y-1 rounded-2xl border border-border bg-bg-terminal/60 p-3 font-mono text-[12px] text-slate-300">
         {Object.entries(d.meta).map(([k, v]) => (
           <div key={k} className="flex gap-2">
             <span className="min-w-[84px] text-slate-500">{k}:</span>
@@ -98,11 +98,11 @@ function LogsDialog({ d, onClose }: { d: Decoy | null; onClose: () => void }) {
           </button>
         </div>
         {d.logs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-slate-400">
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-slate-400">
             No access attempts yet. This decoy is waiting for its first visitor.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-2xl border border-border">
             <table className="w-full text-left text-[12px]">
               <thead className="bg-bg-terminal text-[10px] uppercase tracking-widest text-slate-400">
                 <tr>
@@ -188,7 +188,7 @@ export function PhantomShieldPage() {
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
             <ShieldHalf className="h-3.5 w-3.5" /> PhantomShield
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-white">
+          <h1 className="mt-1 font-display text-2xl font-bold text-white">
             Deploy decoys. Catch attackers in the act.
           </h1>
           <p className="mt-1 text-sm text-slate-400">
@@ -234,7 +234,7 @@ export function PhantomShieldPage() {
         </div>
         <div
           ref={scrollRef}
-          className="terminal h-[240px] overflow-y-auto"
+          className="terminal scanlines h-[240px] overflow-y-auto"
         >
           {events.length === 0 ? (
             <div className="text-slate-500">

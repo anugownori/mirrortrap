@@ -157,7 +157,7 @@ function ShieldStatusCard() {
           </div>
           <div
             className={cn(
-              'mt-1 text-xl font-bold leading-snug md:text-2xl',
+              'mt-1 font-display text-xl font-bold leading-snug md:text-2xl',
               state === 'ACTIVE' && 'text-brand-success',
               state === 'THREAT' && 'text-brand-danger',
               state === 'INACTIVE' && 'text-slate-400',
@@ -223,11 +223,11 @@ function StatPill({
       ? 'bg-brand-amber/10 border-brand-amber/40 text-brand-amber'
       : 'bg-brand-purple/10 border-brand-purple/40 text-brand-purple';
   return (
-    <div className={cn('flex items-center gap-3 rounded-lg border p-3', toneClass)}>
+    <div className={cn('flex items-center gap-3 rounded-2xl border p-3', toneClass)}>
       <Icon className="h-5 w-5" />
       <div className="flex-1">
         <div className="text-[10px] uppercase tracking-widest opacity-80">{label}</div>
-        <div className="font-mono text-lg font-bold text-white">{value}</div>
+        <div className="font-display text-lg font-bold text-white">{value}</div>
       </div>
     </div>
   );

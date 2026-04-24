@@ -63,7 +63,7 @@ function ShortcutsModal({ open, onClose }: { open: boolean; onClose: () => void 
           {SHORTCUTS.map(([k, l]) => (
             <li key={k} className="flex items-center justify-between py-2 text-sm">
               <span className="text-slate-300">{l}</span>
-              <kbd className="rounded-md border border-border bg-white/5 px-2 py-0.5 font-mono text-[11px] text-slate-200">
+              <kbd className="rounded-full border border-border bg-white/5 px-2.5 py-0.5 font-mono text-[11px] text-slate-200">
                 {k}
               </kbd>
             </li>
@@ -112,7 +112,7 @@ function UpgradeModalInner({ onClose }: { onClose: () => void }) {
               <div className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-amber/40 bg-brand-amber/10 text-brand-amber">
                 <ShieldCheck className="h-7 w-7" />
               </div>
-              <div className="mt-4 text-xl font-bold text-white">Autonomous defense</div>
+              <div className="mt-4 font-display text-xl font-bold text-white">Autonomous defense</div>
               <p className="mt-2 text-sm text-slate-400">
                 Available on the Enterprise plan (₹9,999/month). Upgrade to let MirrorTrap fight
                 attackers automatically — no human intervention needed.
@@ -120,7 +120,7 @@ function UpgradeModalInner({ onClose }: { onClose: () => void }) {
             </div>
             <div className="mt-5 flex flex-wrap justify-center gap-3">
               <button
-                className="btn-primary !bg-brand-amber hover:!bg-brand-amber"
+                className="btn-amber"
                 onClick={() => {
                   onClose();
                   navigate('/#pricing');
@@ -158,7 +158,7 @@ function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
       <Sparkles className="h-3.5 w-3.5" />
       <span className="flex-1 font-semibold uppercase tracking-[0.18em]">
         ⚡ DEMO MODE ACTIVE — showing targetcompany.com dataset — Press{' '}
-        <kbd className="rounded border border-brand-amber/40 bg-black/20 px-1 py-px font-mono text-[10px] text-brand-amber">
+        <kbd className="rounded-full border border-brand-amber/40 bg-black/20 px-1.5 py-px font-mono text-[10px] text-brand-amber">
           D
         </kbd>{' '}
         to toggle
@@ -179,7 +179,7 @@ function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
 }
 
 export function DashboardShell() {
-  const { user, signOut, demoMode, setDemoMode, latestScan, alerts, simulateAttack, isEnterprise } =
+  const { signOut, demoMode, setDemoMode, latestScan, alerts, simulateAttack, isEnterprise } =
     useApp();
   const navigate = useNavigate();
   const [quickDomain, setQuickDomain] = useState('');
@@ -233,81 +233,83 @@ export function DashboardShell() {
 
   return (
     <div className="min-h-screen">
-      {/* Demo mode banner — keyed so it remounts fresh each time demoMode flips on */}
+      {/* Demo mode banner */}
       {demoMode ? (
         <DemoBanner key="demo-banner" onDismiss={() => setDemoMode(false)} />
       ) : null}
 
-      {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-[#0D0B1A]/85 backdrop-blur">
-        <div className="flex h-14 items-center gap-4 px-5">
+      {/* ── Floating pill top bar ──────────────────────── */}
+      <header className="pointer-events-none fixed left-0 right-0 top-0 z-40 flex justify-center px-4 pt-4">
+        <div
+          className="pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-nav-pill"
+          style={{
+            background: 'rgba(26,23,48,0.75)',
+            backdropFilter: 'blur(20px) saturate(180%)',
+            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+            border: '1px solid rgba(127,119,221,0.2)',
+          }}
+        >
           <Logo />
-          <div className="hidden h-6 w-px bg-border md:block" />
-          <form onSubmit={onQuickScan} className="relative hidden max-w-[260px] flex-1 md:flex">
-            <Radar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+          <div className="hidden h-5 w-px bg-white/10 md:block" />
+          <form onSubmit={onQuickScan} className="relative hidden max-w-[240px] flex-1 md:flex">
+            <Radar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
             <input
               ref={inputRef}
               value={quickDomain}
               onChange={(e) => setQuickDomain(e.target.value)}
-              placeholder="Quick scan domain..."
-              className="w-full rounded-lg border border-border bg-bg-terminal py-2 pl-9 pr-10 text-sm font-mono placeholder:text-slate-500 focus:border-brand-purple focus:outline-none"
+              placeholder="Quick scan..."
+              className="w-full rounded-full border border-white/10 bg-white/5 py-1.5 pl-8 pr-8 text-xs font-mono placeholder:text-slate-500 focus:border-brand-purple focus:outline-none"
             />
-            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded border border-border bg-white/5 px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
+            <kbd className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[9px] text-slate-400">
               /
             </kbd>
           </form>
-          <div className="ml-auto flex items-center gap-3">
-            {latestScan ? <ArsBadge score={latestScan.ars_score} /> : null}
-            <div className="hidden text-right text-[11px] text-slate-400 md:block">
-              <div className="font-mono">Last scan</div>
-              <div>{latestScan ? formatDate(latestScan.timestamp) : '—'}</div>
-            </div>
-            <button
-              onClick={() => setDemoMode(!demoMode)}
-              className={cn(
-                'btn-ghost !py-1.5 !text-[11px] !uppercase tracking-wider',
-                demoMode && 'border-brand-amber/60 bg-brand-amber/10 text-brand-amber',
-              )}
-              title="Press D to toggle"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Demo {demoMode ? 'ON' : 'OFF'}
-            </button>
-            <button onClick={simulateAttack} className="btn-danger !py-1.5 !text-[11px] !uppercase tracking-wider">
-              <Zap className="h-3.5 w-3.5" />
-              Simulate Attack
-            </button>
-            <button
-              onClick={() => setShortcutsOpen(true)}
-              className="btn-ghost !py-1.5"
-              aria-label="Keyboard shortcuts"
-              title="Keyboard shortcuts (press ?)"
-            >
-              <Keyboard className="h-4 w-4" />
-            </button>
-            <div className="hidden flex-col items-end text-right text-[11px] md:flex">
-              <span className="text-slate-500">Signed in as</span>
-              <span className="font-mono text-slate-300">{user?.email ?? 'guest'}</span>
-            </div>
-            <button
-              onClick={() => {
-                void signOut();
-                navigate('/');
-              }}
-              className="btn-ghost !py-1.5"
-              aria-label="Sign out"
-              title="Sign out"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+          {latestScan ? <ArsBadge score={latestScan.ars_score} /> : null}
+          <div className="hidden text-right text-[10px] text-slate-400 md:block">
+            <div className="font-mono">Last scan</div>
+            <div>{latestScan ? formatDate(latestScan.timestamp) : '—'}</div>
           </div>
+          <button
+            onClick={() => setDemoMode(!demoMode)}
+            className={cn(
+              'btn-ghost !py-1.5 !px-3 !text-[10px]',
+              demoMode && '!border-brand-amber/60 !bg-brand-amber/10 !text-brand-amber',
+            )}
+            title="Press D to toggle"
+          >
+            <Sparkles className="h-3 w-3" />
+            Demo {demoMode ? 'ON' : 'OFF'}
+          </button>
+          <button onClick={simulateAttack} className="btn-danger !py-1.5 !px-3 !text-[10px]">
+            <Zap className="h-3 w-3" />
+            Attack
+          </button>
+          <button
+            onClick={() => setShortcutsOpen(true)}
+            className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (press ?)"
+          >
+            <Keyboard className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => {
+              void signOut();
+              navigate('/');
+            }}
+            className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+          </button>
         </div>
       </header>
 
-      <div className="flex min-h-[calc(100vh-3.5rem)]">
-        {/* Sidebar */}
-        <aside className="hidden w-60 shrink-0 border-r border-border/60 bg-[#0D0B1A]/60 md:block">
-          <nav className="sticky top-14 flex flex-col gap-1 p-3">
+      <div className="flex min-h-screen pt-16">
+        {/* ── Sidebar ──────────────────────────────────── */}
+        <aside className="hidden w-56 shrink-0 md:block" style={{ borderRight: '1px solid rgba(127,119,221,0.08)' }}>
+          <nav className="sticky top-20 flex flex-col gap-1 p-3 pt-4">
             {NAV.map(({ to, label, icon: Icon, enterprise }) => {
               const gated = enterprise && !isEnterprise;
               const itemInner = (
@@ -316,14 +318,14 @@ export function DashboardShell() {
                   <span className="flex-1">{label}</span>
                   {enterprise ? (
                     <span
-                      className="rounded bg-brand-amber/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-amber"
+                      className="rounded-full bg-brand-amber/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-amber"
                       title="Enterprise plan only"
                     >
                       ENT
                     </span>
                   ) : null}
                   {to === '/alerts' && unread > 0 ? (
-                    <span className="rounded bg-brand-danger/30 px-1.5 py-0.5 text-[10px] font-semibold text-brand-danger">
+                    <span className="rounded-full bg-brand-danger/30 px-1.5 py-0.5 text-[10px] font-semibold text-brand-danger">
                       {unread}
                     </span>
                   ) : null}
@@ -334,7 +336,7 @@ export function DashboardShell() {
                   <button
                     key={to}
                     onClick={() => setUpgradeOpen(true)}
-                    className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100"
+                    className="group flex items-center gap-2 rounded-full px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100"
                   >
                     {itemInner}
                   </button>
@@ -346,9 +348,9 @@ export function DashboardShell() {
                   to={to}
                   className={({ isActive }) =>
                     cn(
-                      'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
+                      'group flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors',
                       isActive
-                        ? 'bg-brand-purple/15 text-white shadow-glow'
+                        ? 'bg-brand-purple/15 text-white'
                         : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
                     )
                   }
@@ -369,8 +371,8 @@ export function DashboardShell() {
           </nav>
         </aside>
 
-        {/* Content */}
-        <main className="flex-1 animate-fade-in p-6">
+        {/* ── Content ──────────────────────────────────── */}
+        <main className="flex-1 page-enter p-6">
           <Outlet />
         </main>
       </div>

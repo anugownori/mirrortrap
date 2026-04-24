@@ -45,7 +45,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
           <div className="pill border-brand-purple/40 text-brand-purple">
             <ShieldCheck className="h-3 w-3" /> MirrorTrap
           </div>
-          <h1 className="mt-3 text-3xl font-bold leading-tight text-white md:text-4xl">
+          <h1 className="mt-3 font-display text-3xl font-bold leading-tight text-white md:text-4xl">
             {mode === 'login' ? 'Welcome back.' : 'Create your command center.'}
           </h1>
           <p className="mt-2 max-w-sm text-slate-400">
@@ -62,7 +62,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             ].map((t) => (
               <div
                 key={t}
-                className="flex items-center gap-2 rounded-lg border border-border bg-bg-surface/60 px-3 py-2 text-sm text-slate-300"
+                className="flex items-center gap-2 rounded-2xl border border-border bg-bg-surface/60 px-3 py-2 text-sm text-slate-300"
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-brand-purple" />
                 {t}
@@ -88,7 +88,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-border bg-bg-terminal py-2 pl-9 pr-3 text-sm font-mono focus:border-brand-purple focus:outline-none"
+              className="w-full rounded-full border border-border bg-bg-terminal py-2 pl-9 pr-3 text-sm font-mono focus:border-brand-purple focus:outline-none"
               placeholder="you@company.com"
             />
           </div>
@@ -104,12 +104,12 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-border bg-bg-terminal py-2 pl-9 pr-3 text-sm font-mono focus:border-brand-purple focus:outline-none"
+              className="w-full rounded-full border border-border bg-bg-terminal py-2 pl-9 pr-3 text-sm font-mono focus:border-brand-purple focus:outline-none"
               placeholder="••••••••"
             />
           </div>
           {err ? (
-            <div className="mt-3 rounded-md border border-brand-danger/40 bg-brand-danger/10 px-3 py-2 text-xs text-brand-danger">
+            <div className="mt-3 rounded-2xl border border-brand-danger/40 bg-brand-danger/10 px-3 py-2 text-xs text-brand-danger">
               {err}
             </div>
           ) : null}
@@ -118,7 +118,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             {!loading && <ArrowRight className="h-4 w-4" />}
           </button>
           {!supabaseEnabled ? (
-            <div className="mt-3 rounded-md border border-border bg-white/5 px-3 py-2 text-[11px] text-slate-400">
+            <div className="mt-3 rounded-2xl border border-border bg-white/5 px-3 py-2 text-[11px] text-slate-400">
               Demo mode: no Supabase keys configured. Auth is local to this browser — any email +
               password works.
             </div>
