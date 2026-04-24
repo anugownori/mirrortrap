@@ -1,0 +1,77 @@
+export type Severity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+
+export type ScanSource =
+  | 'HaveIBeenPwned'
+  | 'Shodan'
+  | 'crt.sh'
+  | 'GitHub'
+  | 'DNS';
+
+export interface Finding {
+  id: string;
+  severity: Severity;
+  source: ScanSource;
+  title: string;
+  description: string;
+  meaning: string;
+}
+
+export interface ScanResult {
+  id: string;
+  domain: string;
+  ars_score: number;
+  findings: Finding[];
+  timestamp: string;
+  estimated_time_to_exploit_hours: number;
+  primary_entry_path: string;
+  confidence: number;
+}
+
+export type DecoyType =
+  | 'honey-admin'
+  | 'fake-aws-key'
+  | 'decoy-login'
+  | 'honey-token';
+
+export interface Decoy {
+  id: DecoyType;
+  name: string;
+  active: boolean;
+  meta: Record<string, string>;
+  logs: DecoyLog[];
+}
+
+export interface DecoyLog {
+  id: string;
+  timestamp: string;
+  ip: string;
+  location: string;
+  user_agent: string;
+  action: string;
+}
+
+export type AlertSeverity = 'CRITICAL' | 'HIGH';
+
+export interface Alert {
+  id: string;
+  timestamp: string;
+  severity: AlertSeverity;
+  ip: string;
+  country_flag: string;
+  country: string;
+  network_tag: string;
+  user_agent: string;
+  asset_used: string;
+  asset_value: string;
+  behavior: {
+    requests: string;
+    pattern: string;
+    fingerprint: string;
+  };
+  classification: {
+    label: 'Automated Recon Bot' | 'Human Attacker';
+    confidence: number;
+  };
+  attack_path: Array<{ step: number; label: string; triggered?: boolean; predicted?: boolean }>;
+  status: 'open' | 'flagged' | 'dismissed';
+}
