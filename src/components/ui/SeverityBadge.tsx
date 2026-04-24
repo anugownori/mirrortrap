@@ -12,11 +12,30 @@ export function SeverityBadge({ severity, className }: { severity: Severity; cla
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-widest',
+        'inline-flex items-center gap-1.5 rounded-full border px-3 py-0.5',
         classes[severity],
         className,
       )}
+      style={{
+        fontFamily: "'Space Grotesk', sans-serif",
+        fontWeight: 500,
+        fontSize: '9.5px',
+        letterSpacing: '0.15em',
+        textTransform: 'uppercase',
+      }}
     >
+      {severity === 'CRITICAL' && (
+        <span
+          style={{
+            width: 4,
+            height: 4,
+            borderRadius: '50%',
+            background: '#F09595',
+            animation: 'critPulse 1.5s ease-in-out infinite',
+            display: 'inline-block',
+          }}
+        />
+      )}
       {severity}
     </span>
   );

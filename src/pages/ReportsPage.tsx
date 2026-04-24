@@ -17,6 +17,7 @@ import { useApp } from '@/lib/useApp';
 import { ArsBadge } from '@/components/ui/ArsBadge';
 import { arsColor, cn, formatDate } from '@/lib/utils';
 import type { ScanResult } from '@/lib/types';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 function downloadReport(s: ScanResult) {
@@ -60,10 +61,10 @@ ${s.findings
 
 function StatCard({ label, value, tone }: { label: string; value: string | number; tone: string }) {
   return (
-    <div className="card p-4">
+    <CardSpotlight className="p-4">
       <div className="text-[10px] uppercase tracking-widest text-slate-400">{label}</div>
-      <div className={cn('mt-1 font-mono text-3xl tabular-nums', tone)}>{value}</div>
-    </div>
+      <div className={cn('mt-1 font-display text-3xl font-bold tabular-nums', tone)}>{value}</div>
+    </CardSpotlight>
   );
 }
 
@@ -144,7 +145,7 @@ export function ReportsPage() {
         <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
           <FileBarChart className="h-3.5 w-3.5" /> Reports
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-white">Scan history &amp; ARS trend</h1>
+        <h1 className="mt-1 font-display text-2xl font-bold text-white">Scan history &amp; ARS trend</h1>
         <p className="mt-1 text-sm text-slate-400">
           Historical view of your attack-readiness posture, exportable threat reports per scan,
           and competitive intelligence vs other security tools.

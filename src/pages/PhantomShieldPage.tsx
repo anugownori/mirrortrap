@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/Switch';
 import { useApp } from '@/lib/useApp';
 import type { Decoy } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 const ICONS: Record<Decoy['id'], typeof ShieldHalf> = {
@@ -65,7 +66,7 @@ function DecoyCard({ d, onOpen }: { d: Decoy; onOpen: (d: Decoy) => void }) {
         </div>
         <Switch checked={d.active} onCheckedChange={() => toggleDecoy(d.id)} />
       </div>
-      <div className="space-y-1 rounded-lg border border-border bg-bg-terminal/60 p-3 font-mono text-[12px] text-slate-300">
+      <div className="space-y-1 rounded-2xl border border-border bg-bg-terminal/60 p-3 font-mono text-[12px] text-slate-300">
         {Object.entries(d.meta).map(([k, v]) => (
           <div key={k} className="flex gap-2">
             <span className="min-w-[84px] text-slate-500">{k}:</span>
@@ -98,11 +99,11 @@ function LogsDialog({ d, onClose }: { d: Decoy | null; onClose: () => void }) {
           </button>
         </div>
         {d.logs.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-6 text-center text-sm text-slate-400">
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-slate-400">
             No access attempts yet. This decoy is waiting for its first visitor.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border">
+          <div className="overflow-hidden rounded-2xl border border-border">
             <table className="w-full text-left text-[12px]">
               <thead className="bg-bg-terminal text-[10px] uppercase tracking-widest text-slate-400">
                 <tr>
@@ -183,12 +184,12 @@ export function PhantomShieldPage() {
 
   return (
     <div className="space-y-6">
-      <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <CardSpotlight className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
             <ShieldHalf className="h-3.5 w-3.5" /> PhantomShield
           </div>
-          <h1 className="mt-1 text-2xl font-bold text-white">
+          <h1 className="mt-1 font-display text-2xl font-bold text-white">
             Deploy decoys. Catch attackers in the act.
           </h1>
           <p className="mt-1 text-sm text-slate-400">
@@ -199,7 +200,7 @@ export function PhantomShieldPage() {
         <button onClick={deployAll} className="btn-amber !px-5 !py-3">
           <Rocket className="h-4 w-4" /> DEPLOY ALL
         </button>
-      </div>
+      </CardSpotlight>
 
       {banner ? (
         <div className="card animate-fade-in border-brand-success/50 bg-brand-success/10 p-4 text-sm shadow-glow-success">
@@ -222,7 +223,7 @@ export function PhantomShieldPage() {
         ))}
       </div>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="mb-2 flex items-center justify-between">
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
             <Terminal className="h-3.5 w-3.5" /> Live Monitoring
@@ -234,7 +235,7 @@ export function PhantomShieldPage() {
         </div>
         <div
           ref={scrollRef}
-          className="terminal h-[240px] overflow-y-auto"
+          className="terminal scanlines h-[240px] overflow-y-auto"
         >
           {events.length === 0 ? (
             <div className="text-slate-500">
@@ -258,7 +259,7 @@ export function PhantomShieldPage() {
             ))
           )}
         </div>
-      </div>
+      </CardSpotlight>
 
       <LogsDialog d={open} onClose={() => setOpen(null)} />
     </div>

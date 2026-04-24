@@ -19,6 +19,7 @@ import {
 import { useApp } from '@/lib/useApp';
 import { ArsGauge } from '@/components/ui/ArsGauge';
 import { SeverityBadge } from '@/components/ui/SeverityBadge';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { cn, formatDate } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
 
@@ -42,20 +43,20 @@ function StatCard({
     success: 'text-brand-success bg-brand-success/10 border-brand-success/40',
   } as const;
   return (
-    <div className="card p-4">
+    <CardSpotlight className="p-4">
       <div className="flex items-center gap-3">
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg border', map[tone])}>
+        <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl border', map[tone])}>
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-widest text-slate-400">{label}</div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, fontSize: 10, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(245,240,255,0.4)' }}>{label}</div>
           <div className="mt-0.5 flex items-baseline gap-2">
-            <span className="font-mono text-2xl text-white tabular-nums">{value}</span>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', color: 'white', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
             {extra}
           </div>
         </div>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -90,7 +91,7 @@ function BreachCountdown({ hours }: { hours: number }) {
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="relative mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-brand-danger/15 text-brand-danger animate-pulse-ring">
+          <div className="relative mt-0.5 flex h-9 w-9 items-center justify-center rounded-xl bg-brand-danger/15 text-brand-danger animate-pulse-ring">
             <Siren className="h-5 w-5" />
           </div>
           <div>
@@ -111,7 +112,7 @@ function BreachCountdown({ hours }: { hours: number }) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="rounded-lg border border-brand-danger/40 bg-black/40 px-3 py-2 font-mono text-2xl tabular-nums text-brand-danger">
+          <div className="rounded-2xl border border-brand-danger/40 bg-black/40 px-3 py-2 font-mono text-2xl tabular-nums text-brand-danger">
             {pad(hh)}:{pad(mm)}:{pad(ss)}
           </div>
           <Link to="/phantomshield" className="btn-danger !py-2.5">
@@ -174,16 +175,16 @@ function LiveTicker() {
     return () => clearInterval(int);
   }, []);
   return (
-    <div className="card p-4">
+    <CardSpotlight className="p-4">
       <div className="mb-2 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-slate-400">
-          <Terminal className="h-3.5 w-3.5 text-brand-purple" /> Live Recon Activity (simulated)
+        <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]" style={{ color: 'rgba(245,240,255,0.4)' }}>
+          <Terminal className="h-3.5 w-3.5" style={{ color: '#C084FC' }} /> Live Recon Activity (simulated)
         </div>
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-brand-success">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-success animate-pulse-dot" /> listening
+        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#1D9E75' }}>
+          <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: '#1D9E75' }} /> listening
         </span>
       </div>
-      <div className="terminal max-h-[168px] overflow-hidden">
+      <div className="terminal scanlines max-h-[168px] overflow-hidden">
         {lines.map((l, i) => (
           <div
             key={l.id}
@@ -192,12 +193,12 @@ function LiveTicker() {
               i === 0 ? 'text-brand-amber animate-slide-up' : 'text-slate-400',
             )}
           >
-            <span className="text-slate-500">[{l.ts}]</span>
+            <span className="text-white/30">[{l.ts}]</span>
             <span className="flex-1">{l.text}</span>
           </div>
         ))}
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -233,7 +234,7 @@ function OnboardingCard({
             key={s.key}
             to={s.to}
             className={cn(
-              'group flex items-start gap-3 rounded-lg border p-4 transition-all',
+              'group flex items-start gap-3 rounded-2xl border p-4 transition-all',
               s.done
                 ? 'border-brand-success/40 bg-brand-success/5'
                 : 'border-border bg-bg-terminal/50 hover:border-brand-purple/60 hover:bg-brand-purple/5',
@@ -245,7 +246,7 @@ function OnboardingCard({
               <Circle className="mt-0.5 h-5 w-5 text-slate-500 group-hover:text-brand-purple" />
             )}
             <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400">
+              <div className="text-[10px] uppercase tracking-widest text-white/40">
                 Step {i + 1}
               </div>
               <div
@@ -314,14 +315,14 @@ export function DashboardHome() {
         <OnboardingCard hasScan={false} hasDecoy={activeDecoys > 0} hasAlert={alerts.length > 0} />
       ) : null}
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
+            <div className="section-label">
               <Radar className="h-3.5 w-3.5" /> Quick scan
             </div>
-            <h1 className="mt-1 text-2xl font-bold text-white">Run a scan in under a minute.</h1>
-            <p className="mt-1 text-sm text-slate-400">
+            <h1 className="mt-2 font-display text-2xl font-bold text-white">Run a scan in under a minute.</h1>
+            <p className="mt-1 text-sm text-white/55">
               {demoMode
                 ? 'Demo Mode is ON — preloaded targetcompany.com data is available across the app.'
                 : 'Type any domain and hit Enter. We\u2019ll trace it the way an attacker would.'}
@@ -335,14 +336,14 @@ export function DashboardHome() {
               value={quickDomain}
               onChange={(e) => setQuickDomain(e.target.value)}
               placeholder={demoMode ? 'targetcompany.com' : 'company.com'}
-              className="w-full rounded-lg border border-border bg-bg-terminal py-3 pl-9 pr-3 font-mono text-sm focus:border-brand-purple focus:outline-none"
+              className="w-full rounded-full border border-border bg-bg-terminal py-3 pl-9 pr-3 font-mono text-sm focus:border-brand-purple focus:outline-none"
             />
           </div>
-          <button type="submit" className="btn-primary !px-5 !py-3">
+          <button type="submit" className="btn-primary !px-6 !py-3">
             Scan <ArrowRight className="h-4 w-4" />
           </button>
         </form>
-      </div>
+      </CardSpotlight>
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
@@ -354,7 +355,7 @@ export function DashboardHome() {
             arsDelta !== null ? (
               <span
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest',
+                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest',
                   arsDelta > 0
                     ? 'bg-brand-danger/15 text-brand-danger'
                     : arsDelta < 0
@@ -385,22 +386,21 @@ export function DashboardHome() {
 
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <div className="space-y-4">
-          <div
-            className="card flex flex-col items-center justify-center p-6"
-            title="ARS = Attack Readiness Score — a 0-100 composite of your OSINT exposure. Lower is better."
+          <CardSpotlight
+            className="flex flex-col items-center justify-center p-6"
           >
             {latestScan ? (
               <>
                 <ArsGauge score={latestScan.ars_score} />
                 <div className="mt-3 text-center">
                   <div className="font-mono text-sm text-slate-300">{latestScan.domain}</div>
-                  <div className="text-[11px] uppercase tracking-widest text-slate-500">
+                  <div className="text-[11px] uppercase tracking-widest text-white/40">
                     {formatDate(latestScan.timestamp)}
                   </div>
                   {arsDelta !== null ? (
                     <div
                       className={cn(
-                        'mt-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest',
+                        'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest',
                         arsDelta > 0
                           ? 'bg-brand-danger/15 text-brand-danger'
                           : arsDelta < 0
@@ -426,15 +426,15 @@ export function DashboardHome() {
                 </Link>
               </div>
             )}
-          </div>
+          </CardSpotlight>
 
           <LiveTicker />
         </div>
 
         <div className="space-y-4">
-          <div className="card p-5">
+          <CardSpotlight className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-slate-400">
+              <div className="text-xs uppercase tracking-widest text-white/40">
                 Findings summary (latest scan)
               </div>
               <Link to="/scan" className="text-xs text-brand-purple hover:underline">
@@ -443,25 +443,25 @@ export function DashboardHome() {
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((sev) => (
-                <div key={sev} className="rounded-lg border border-border bg-bg-terminal/50 p-3">
+                <div key={sev} className="rounded-2xl border border-border bg-bg-terminal/50 p-3">
                   <SeverityBadge severity={sev} />
-                  <div className="mt-2 font-mono text-2xl tabular-nums text-white">
+                  <div className="mt-2 font-display text-2xl font-bold tabular-nums text-white">
                     {findingCounts[sev] ?? 0}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </CardSpotlight>
 
-          <div className="card p-5">
+          <CardSpotlight className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-slate-400">Recent activity</div>
+              <div className="text-xs uppercase tracking-widest" style={{ color: 'rgba(245,240,255,0.4)' }}>Recent activity</div>
               <Link to="/alerts" className="text-xs text-brand-purple hover:underline">
                 All alerts →
               </Link>
             </div>
             {alerts.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-slate-400">
+              <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-slate-400">
                 No tripwires fired yet. Deploy PhantomShield to start catching reconnaissance.
               </div>
             ) : (
@@ -469,7 +469,7 @@ export function DashboardHome() {
                 {alerts.slice(0, 5).map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-start gap-3 rounded-lg border border-border bg-bg-terminal/40 p-3"
+                    className="flex items-start gap-3 rounded-2xl border border-border bg-bg-terminal/40 p-3"
                   >
                     <Zap
                       className={cn(
@@ -483,7 +483,7 @@ export function DashboardHome() {
                         <span className="text-slate-500">touched by</span>{' '}
                         <span className="font-mono">{a.ip}</span>
                       </div>
-                      <div className="text-[11px] text-slate-500">
+                      <div className="text-[11px] text-white/30">
                         {a.country_flag} {a.country} · {formatDate(a.timestamp)}
                       </div>
                     </div>
@@ -491,11 +491,11 @@ export function DashboardHome() {
                 ))}
               </ul>
             )}
-          </div>
+          </CardSpotlight>
 
-          <div className="card p-5">
+          <CardSpotlight className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-slate-400">Scan history</div>
+              <div className="text-xs uppercase tracking-widest" style={{ color: 'rgba(245,240,255,0.4)' }}>Scan history</div>
               <Link to="/reports" className="text-xs text-brand-purple hover:underline">
                 All reports →
               </Link>
@@ -504,7 +504,7 @@ export function DashboardHome() {
               <div className="text-sm text-slate-400">No scans yet.</div>
             ) : (
               <table className="w-full text-left text-sm">
-                <thead className="text-[10px] uppercase tracking-widest text-slate-500">
+                <thead className="text-[10px] uppercase tracking-widest text-white/40">
                   <tr>
                     <th className="py-1">Domain</th>
                     <th className="py-1">When</th>
@@ -524,7 +524,7 @@ export function DashboardHome() {
                 </tbody>
               </table>
             )}
-          </div>
+          </CardSpotlight>
         </div>
       </div>
     </div>

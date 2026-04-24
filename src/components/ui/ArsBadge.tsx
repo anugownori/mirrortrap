@@ -12,7 +12,7 @@ export function ArsBadge({ score, className }: { score: number; className?: stri
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-2 rounded-lg border px-2.5 py-1 text-xs font-semibold',
+        'inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold',
         tone,
         className,
       )}

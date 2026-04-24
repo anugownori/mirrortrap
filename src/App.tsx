@@ -1,6 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppProvider } from '@/lib/store';
 import { Toaster } from '@/components/ui/Toaster';
+import { CustomCursor } from '@/components/ui/CustomCursor';
+import { AmbientLight } from '@/components/ui/AmbientLight';
 import { LandingPage } from '@/pages/LandingPage';
 import { AuthPage } from '@/pages/AuthPage';
 import { DashboardShell } from '@/components/DashboardShell';
@@ -17,6 +19,8 @@ function App() {
   return (
     <AppProvider>
       <BrowserRouter>
+        <CustomCursor />
+        <AmbientLight />
         <Toaster />
         <Routes>
           <Route path="/" element={<LandingPage />} />

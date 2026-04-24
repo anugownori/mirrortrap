@@ -11,6 +11,7 @@ import {
 import { Switch } from '@/components/ui/Switch';
 import { useApp } from '@/lib/useApp';
 import { supabaseEnabled } from '@/lib/supabase';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 interface IntegrationField {
@@ -77,14 +78,14 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
           <Settings className="h-3.5 w-3.5" /> Settings
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-white">Workspace preferences</h1>
-      </div>
+        <h1 className="mt-1 font-display text-2xl font-bold text-white">Workspace preferences</h1>
+      </CardSpotlight>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm font-semibold text-white">Demo Mode</div>
@@ -96,9 +97,9 @@ export function SettingsPage() {
           </div>
           <Switch checked={demoMode} onCheckedChange={setDemoMode} label={demoMode ? 'ON' : 'OFF'} />
         </div>
-      </div>
+      </CardSpotlight>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="mb-3 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
           <Plug className="h-3.5 w-3.5" /> API Integrations
         </div>
@@ -109,7 +110,7 @@ export function SettingsPage() {
           {INTEGRATIONS.map((i) => (
             <div
               key={i.id}
-              className="rounded-lg border border-border bg-bg-terminal/40 p-4"
+              className="rounded-2xl border border-border bg-bg-terminal/40 p-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -131,7 +132,7 @@ export function SettingsPage() {
                   value={keys[i.id] ?? ''}
                   onChange={(e) => setKeys((k) => ({ ...k, [i.id]: e.target.value }))}
                   placeholder={i.placeholder}
-                  className="flex-1 rounded-lg border border-border bg-bg-terminal px-3 py-2 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-purple focus:outline-none"
+                  className="flex-1 rounded-full border border-border bg-bg-terminal px-3 py-2 font-mono text-sm text-slate-100 placeholder:text-slate-500 focus:border-brand-purple focus:outline-none"
                 />
                 <button
                   onClick={() => testConnection(i.id, i.label)}
@@ -150,9 +151,9 @@ export function SettingsPage() {
             </div>
           ))}
         </div>
-      </div>
+      </CardSpotlight>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="text-sm font-semibold text-white">Account</div>
         <div className="mt-2 space-y-1 text-sm text-slate-400">
           <div>
@@ -171,9 +172,9 @@ export function SettingsPage() {
             )}
           </div>
         </div>
-      </div>
+      </CardSpotlight>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="text-sm font-semibold text-white">Danger zone</div>
         <div className="mt-1 text-sm text-slate-400">
           Clears local scans, decoys, and alerts saved in your browser.
@@ -181,9 +182,9 @@ export function SettingsPage() {
         <button onClick={clearData} className="btn-danger mt-3 !py-2">
           <Trash2 className="h-4 w-4" /> Clear local data
         </button>
-      </div>
+      </CardSpotlight>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
           <Sparkles className="h-3.5 w-3.5" /> Keyboard shortcuts
         </div>
@@ -204,7 +205,7 @@ export function SettingsPage() {
             <kbd className="pill">Ctrl + A</kbd> — go to Alerts
           </li>
         </ul>
-      </div>
+      </CardSpotlight>
     </div>
   );
 }
