@@ -419,6 +419,9 @@ export function ScanPage() {
     'crt.sh': false,
     GitHub: false,
     DNS: false,
+    DarkWeb: false,
+    SSL: false,
+    LinkedIn: false,
   });
   const [result, setResult] = useState<ScanResult | null>(null);
   const [term, setTerm] = useState<TermLine[]>([]);
@@ -432,7 +435,7 @@ export function ScanPage() {
       setPhase('scanning');
       setResult(null);
       setDossierOpen(false);
-      setProgress({ HaveIBeenPwned: false, Shodan: false, 'crt.sh': false, GitHub: false, DNS: false });
+      setProgress({ HaveIBeenPwned: false, Shodan: false, 'crt.sh': false, GitHub: false, DNS: false, DarkWeb: false, SSL: false, LinkedIn: false });
       setTerm([
         { text: `$ mirrortrap scan ${d}`, tone: 'cmd' },
         { text: '> Initializing 5-source OSINT sweep...', tone: 'dim' },

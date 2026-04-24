@@ -11,7 +11,11 @@ import { PhantomShieldPage } from '@/pages/PhantomShieldPage';
 import { AlertsPage } from '@/pages/AlertsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
-import { ProtectPage } from '@/pages/ProtectPage';
+import { HackersEyePage } from '@/pages/HackersEyePage';
+import { AttackPathPage } from '@/pages/AttackPathPage';
+import { BreachSimPage } from '@/pages/BreachSimPage';
+import { DarkWebPage } from '@/pages/DarkWebPage';
+import { ExposureScorePage } from '@/pages/ExposureScorePage';
 
 function App() {
   return (
@@ -26,10 +30,14 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardShell />}>
               <Route path="/dashboard" element={<DashboardHome />} />
+              <Route path="/hackers-eye" element={<HackersEyePage />} />
+              <Route path="/attack-path" element={<AttackPathPage />} />
+              <Route path="/breach-sim" element={<BreachSimPage />} />
+              <Route path="/dark-web" element={<DarkWebPage />} />
+              <Route path="/exposure" element={<ExposureScorePage />} />
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/phantomshield" element={<PhantomShieldPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
-              <Route path="/protect" element={<ProtectPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

@@ -5,7 +5,10 @@ export type ScanSource =
   | 'Shodan'
   | 'crt.sh'
   | 'GitHub'
-  | 'DNS';
+  | 'DNS'
+  | 'DarkWeb'
+  | 'SSL'
+  | 'LinkedIn';
 
 export interface Finding {
   id: string;
@@ -14,6 +17,7 @@ export interface Finding {
   title: string;
   description: string;
   meaning: string;
+  fix?: string;
 }
 
 export interface ScanResult {
@@ -97,4 +101,94 @@ export interface Alert {
   };
   attack_path: Array<{ step: number; label: string; triggered?: boolean; predicted?: boolean }>;
   status: 'open' | 'flagged' | 'dismissed';
+}
+
+/* ━━━ Module 2: AI Attack Path Engine ━━━ */
+
+export type MitrePhase =
+  | 'Reconnaissance'
+  | 'Initial Access'
+  | 'Execution'
+  | 'Persistence'
+  | 'Privilege Escalation'
+  | 'Defense Evasion'
+  | 'Credential Access'
+  | 'Discovery'
+  | 'Lateral Movement'
+  | 'Collection'
+  | 'Exfiltration'
+  | 'Impact';
+
+export interface AttackStep {
+  id: string;
+  step: number;
+  title: string;
+  description: string;
+  mitrePhase: MitrePhase;
+  mitreTechnique: string;
+  risk: Severity;
+  fix: string;
+  timeMinutes: number;
+}
+
+export interface KillChain {
+  id: string;
+  domain: string;
+  steps: AttackStep[];
+  totalTimeMinutes: number;
+  dataAtRisk: string;
+  likelihood: number;
+}
+
+/* ━━━ Module 3: Breach Simulator ━━━ */
+
+export interface BreachEvent {
+  id: string;
+  timestamp: number;
+  action: string;
+  detail: string;
+  severity: 'info' | 'warning' | 'critical';
+  filesAccessed?: string[];
+  dataSize?: string;
+}
+
+export interface BreachSimulation {
+  domain: string;
+  events: BreachEvent[];
+  totalDurationSeconds: number;
+  recordsExfiltrated: number;
+  ransomNote: string;
+}
+
+/* ━━━ Module 4: Dark Web Mirror ━━━ */
+
+export interface DarkWebListing {
+  id: string;
+  title: string;
+  seller: string;
+  price: string;
+  currency: string;
+  lastUpdated: string;
+  credentials: number;
+  accessType: string;
+  details: string[];
+  rating: number;
+  reviews: number;
+}
+
+/* ━━━ Module 5: Exposure Score ━━━ */
+
+export interface ExposureBreakdown {
+  digitalFootprint: number;
+  credentialLeaks: number;
+  attackSurface: number;
+  patchLag: number;
+  socialEngineering: number;
+}
+
+export interface ExposureScore {
+  hackabilityScore: number;
+  breakdown: ExposureBreakdown;
+  riskLevel: 'EXTREME' | 'HIGH' | 'MODERATE' | 'LOW';
+  summary: string;
 }

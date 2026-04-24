@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { arsColor, arsLabel } from '@/lib/utils';
 
 const colorMap = {
-  green: '#1D9E75',
+  green: '#00ff6a',
   amber: '#EF9F27',
-  red: '#F09595',
+  red: '#ff0040',
 } as const;
 
 export function ArsGauge({ score, size = 220 }: { score: number; size?: number }) {
@@ -38,7 +38,7 @@ export function ArsGauge({ score, size = 220 }: { score: number; size?: number }
           cx={size / 2}
           cy={size / 2}
           r={r}
-          stroke="rgba(127,119,221,0.15)"
+          stroke="rgba(255,0,64,0.1)"
           strokeWidth={stroke}
           fill="none"
         />
@@ -52,12 +52,15 @@ export function ArsGauge({ score, size = 220 }: { score: number; size?: number }
           fill="none"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - pct)}
-          style={{ transition: 'stroke-dashoffset 80ms linear' }}
+          style={{
+            transition: 'stroke-dashoffset 80ms linear',
+            filter: `drop-shadow(0 0 8px ${color}60)`,
+          }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <div className="font-mono text-xs uppercase tracking-[0.25em] text-slate-400">
-          Attack Readiness
+        <div className="font-mono text-xs uppercase tracking-[0.25em] text-gray-500">
+          Hackability
         </div>
         <div className="mt-1 text-5xl font-bold tabular-nums" style={{ color }}>
           {displayScore}
