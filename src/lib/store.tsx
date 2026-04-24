@@ -5,13 +5,15 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import type { Alert, Decoy, ScanResult } from './types';
+import type { Alert, Decoy, ScanResult, ThreatEvent } from './types';
 import {
   DEMO_ALERTS,
   DEMO_SCAN,
   SEED_DECOYS,
   generateAlert,
   generateScanHistory,
+  generateThreatEvent,
+  seedThreatEvents,
 } from './mockData';
 import { supabase, supabaseEnabled } from './supabase';
 import { AppContext, type AppCtx, type Toast } from './appContext';
@@ -52,6 +54,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [scans, setScans] = useState<ScanResult[]>(() => loadPersisted().scans ?? []);
   const [decoys, setDecoys] = useState<Decoy[]>(() => loadPersisted().decoys ?? SEED_DECOYS);
   const [alerts, setAlerts] = useState<Alert[]>(() => loadPersisted().alerts ?? []);
+  const [plan, setPlanState] = useState<'free' | 'pro' | 'enterprise'>('free');
+  const [shieldActive, setShieldActive] = useState(false);
+  const [threatEvents, setThreatEvents] = useState<ThreatEvent[]>([]);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   // Persist
@@ -116,6 +121,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const seen = new Set(prev.map((a) => a.id));
           return [...DEMO_ALERTS.filter((a) => !seen.has(a.id)), ...prev];
         });
+        // Enterprise unlock + autonomous shield online for the /protect demo
+        setPlanState('enterprise');
+        setShieldActive(true);
+        setThreatEvents((prev) => (prev.length ? prev : seedThreatEvents()));
       }
       pushToast({
         title: v ? 'Demo Mode activated' : 'Demo Mode disabled',
@@ -124,6 +133,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     },
     [pushToast],
+  );
+
+  // Autonomous-shield threat feed — new event every 15s when shield is ON
+  useEffect(() => {
+    if (!shieldActive) return;
+    const int = setInterval(() => {
+      if (document.hidden) return;
+      setThreatEvents((prev) => [generateThreatEvent(0), ...prev].slice(0, 20));
+    }, 15000);
+    return () => clearInterval(int);
+  }, [shieldActive]);
+
+  const setPlan = useCallback(
+    (p: 'free' | 'pro' | 'enterprise') => {
+      setPlanState(p);
+      pushToast({
+        title: `Plan changed → ${p.toUpperCase()}`,
+        tone: p === 'enterprise' ? 'success' : 'info',
+      });
+    },
+    [pushToast],
+  );
+
+  const setShieldActiveWrapped = useCallback(
+    (v: boolean) => {
+      setShieldActive(v);
+      if (v && threatEvents.length === 0) setThreatEvents(seedThreatEvents());
+      pushToast({
+        title: v ? 'MirrorTrap Shield activated' : 'Shield offline',
+        body: v
+          ? 'Autonomous defense is now running.'
+          : 'Your assets are unmonitored.',
+        tone: v ? 'success' : 'danger',
+      });
+    },
+    [pushToast, threatEvents.length],
   );
 
   const signIn = useCallback(
@@ -249,6 +294,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     signOut,
     demoMode,
     setDemoMode,
+    isPro: plan === 'pro' || plan === 'enterprise',
+    isEnterprise: plan === 'enterprise',
+    setPlan,
+    shieldActive,
+    setShieldActive: setShieldActiveWrapped,
+    threatEvents,
     scans,
     latestScan,
     addScan,

@@ -11,6 +11,7 @@ import { PhantomShieldPage } from '@/pages/PhantomShieldPage';
 import { AlertsPage } from '@/pages/AlertsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { ProtectPage } from '@/pages/ProtectPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/phantomshield" element={<PhantomShieldPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
+              <Route path="/protect" element={<ProtectPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>

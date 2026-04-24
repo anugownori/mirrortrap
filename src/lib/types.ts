@@ -50,6 +50,29 @@ export interface DecoyLog {
   action: string;
 }
 
+export type ThreatKind =
+  | 'CREDENTIAL STUFFING'
+  | 'PORT SCAN'
+  | 'SQL INJECTION'
+  | 'BRUTE FORCE'
+  | 'OSINT SCRAPE'
+  | 'API ABUSE'
+  | 'SUBDOMAIN ENUM'
+  | 'DIRECTORY BRUTE';
+
+export type ThreatStatus = 'NEUTRALIZED' | 'BLOCKED' | 'DECEIVED' | 'TRACKED' | 'POISONED';
+
+export interface ThreatEvent {
+  id: string;
+  timestamp: string;
+  kind: ThreatKind;
+  ip: string;
+  country_flag: string;
+  action: string;
+  status: ThreatStatus;
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+}
+
 export type AlertSeverity = 'CRITICAL' | 'HIGH';
 
 export interface Alert {

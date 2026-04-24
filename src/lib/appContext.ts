@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { Alert, Decoy, ScanResult } from './types';
+import type { Alert, Decoy, ScanResult, ThreatEvent } from './types';
 
 export interface Toast {
   id: string;
@@ -16,6 +16,18 @@ export interface AppCtx {
 
   demoMode: boolean;
   setDemoMode: (v: boolean) => void;
+
+  /** Plan flags. `isEnterprise` gates the /protect page. */
+  isPro: boolean;
+  isEnterprise: boolean;
+  setPlan: (plan: 'free' | 'pro' | 'enterprise') => void;
+
+  /** Autonomous defense toggle (only relevant on enterprise /protect page). */
+  shieldActive: boolean;
+  setShieldActive: (v: boolean) => void;
+
+  /** Pre-seeded + live-generated threat events for the /protect page. */
+  threatEvents: ThreatEvent[];
 
   scans: ScanResult[];
   latestScan: ScanResult | null;

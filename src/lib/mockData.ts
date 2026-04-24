@@ -336,6 +336,97 @@ export const DEMO_ALERTS: Alert[] = [
   }),
 ];
 
+/* -------------------------- Autonomous-shield threats -------------------- */
+
+import type { ThreatEvent, ThreatKind, ThreatStatus } from './types';
+
+const THREAT_IPS: Array<[string, string, string]> = [
+  ['185.220.101.47', '🇷🇴', 'Romania'],
+  ['91.108.4.0', '🇩🇪', 'Germany'],
+  ['45.33.32.156', '🇺🇸', 'United States'],
+  ['103.21.244.0', '🇨🇳', 'China'],
+  ['162.158.0.0', '🇫🇷', 'France'],
+  ['41.202.64.0', '🇳🇬', 'Nigeria'],
+  ['95.85.48.0', '🇷🇺', 'Russia'],
+  ['193.32.126.0', '🇳🇱', 'Netherlands'],
+];
+
+const THREAT_PATTERNS: Array<{
+  kind: ThreatKind;
+  action: string;
+  status: ThreatStatus;
+  severity: ThreatEvent['severity'];
+}> = [
+  {
+    kind: 'CREDENTIAL STUFFING',
+    action: 'Honey token triggered → IP blacklisted',
+    status: 'NEUTRALIZED',
+    severity: 'CRITICAL',
+  },
+  {
+    kind: 'PORT SCAN',
+    action: 'Decoy server responded → fingerprinted',
+    status: 'TRACKED',
+    severity: 'MEDIUM',
+  },
+  {
+    kind: 'SQL INJECTION',
+    action: 'Decoy DB returned fake data → session logged',
+    status: 'DECEIVED',
+    severity: 'HIGH',
+  },
+  {
+    kind: 'BRUTE FORCE',
+    action: '47 attempts → all hit honey login → auto-reported',
+    status: 'BLOCKED',
+    severity: 'CRITICAL',
+  },
+  {
+    kind: 'OSINT SCRAPE',
+    action: 'Fake employee data served → poisoned their intel',
+    status: 'POISONED',
+    severity: 'MEDIUM',
+  },
+  {
+    kind: 'API ABUSE',
+    action: 'Fake API keys rotated → 412 Precondition Failed served',
+    status: 'DECEIVED',
+    severity: 'HIGH',
+  },
+  {
+    kind: 'SUBDOMAIN ENUM',
+    action: 'Honey subdomain responded with fabricated services',
+    status: 'POISONED',
+    severity: 'MEDIUM',
+  },
+  {
+    kind: 'DIRECTORY BRUTE',
+    action: 'Fake /admin, /backup, /config paths all logged',
+    status: 'TRACKED',
+    severity: 'MEDIUM',
+  },
+];
+
+export function generateThreatEvent(offsetMinutes = 0): ThreatEvent {
+  const p = THREAT_PATTERNS[Math.floor(Math.random() * THREAT_PATTERNS.length)];
+  const [ip, flag] = THREAT_IPS[Math.floor(Math.random() * THREAT_IPS.length)];
+  return {
+    id: `threat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: new Date(Date.now() - offsetMinutes * 60_000).toISOString(),
+    kind: p.kind,
+    action: p.action,
+    status: p.status,
+    severity: p.severity,
+    ip,
+    country_flag: flag,
+  };
+}
+
+export function seedThreatEvents(): ThreatEvent[] {
+  // 8 dramatic events spanning last ~30 minutes, sorted newest first.
+  return Array.from({ length: 8 }, (_, i) => generateThreatEvent(i * 3 + 1));
+}
+
 export function generateScanHistory(): ScanResult[] {
   const now = Date.now();
   const scores = [62, 58, 71, 76, 68, 74, 84];

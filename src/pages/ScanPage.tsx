@@ -22,7 +22,9 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip } from 'r
 import { SeverityBadge } from '@/components/ui/SeverityBadge';
 import { useApp } from '@/lib/useApp';
 import type { Finding, ScanResult, ScanSource, Severity } from '@/lib/types';
-import { DEMO_SCAN, generateScanResult } from '@/lib/mockData';
+import { DEMO_SCAN } from '@/lib/mockData';
+import { runRealScan, sourceHIBP } from '@/lib/scanApi';
+import { Mail } from 'lucide-react';
 import { arsColor, cn, sleep } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
 
@@ -407,6 +409,9 @@ export function ScanPage() {
   const auto = params.get('auto') === '1';
   const { demoMode, addScan } = useApp();
   const [domain, setDomain] = useState(initial);
+  const [email, setEmail] = useState('');
+  const [emailPhase, setEmailPhase] = useState<'idle' | 'scanning' | 'done'>('idle');
+  const [emailResult, setEmailResult] = useState<Finding[]>([]);
   const [phase, setPhase] = useState<Phase>('idle');
   const [progress, setProgress] = useState<Record<ScanSource, boolean>>({
     HaveIBeenPwned: false,
@@ -432,6 +437,14 @@ export function ScanPage() {
         { text: `$ mirrortrap scan ${d}`, tone: 'cmd' },
         { text: '> Initializing 5-source OSINT sweep...', tone: 'dim' },
       ]);
+
+      const isDemo = demoMode && (d.toLowerCase().includes('target') || d === DEMO_SCAN.domain);
+
+      // Kick off the real scan concurrently with the UI animation. Demo domain skips real APIs.
+      const realPromise: Promise<ScanResult | null> = isDemo
+        ? Promise.resolve(null)
+        : runRealScan({ domain: d }).catch(() => null);
+
       for (const s of SOURCES) {
         setTerm((prev) => [...prev, { text: `[SCANNING] ${s.label}...`, tone: 'dim' }]);
         await sleep(s.delay);
@@ -443,14 +456,28 @@ export function ScanPage() {
         { text: '> Correlating signals...', tone: 'dim' },
         { text: '> Scoring attack readiness...', tone: 'dim' },
       ]);
-      await sleep(400);
 
-      const r = demoMode && (d.toLowerCase().includes('target') || d === DEMO_SCAN.domain)
+      const realResult = await realPromise;
+      const r: ScanResult = isDemo
         ? { ...DEMO_SCAN, domain: d, timestamp: new Date().toISOString(), id: `scan_${Date.now()}` }
-        : generateScanResult(d);
+        : (realResult ?? {
+            id: `scan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            domain: d,
+            ars_score: 42,
+            findings: [],
+            timestamp: new Date().toISOString(),
+            estimated_time_to_exploit_hours: 4.1,
+            primary_entry_path: 'OSINT enumeration',
+            confidence: 70,
+          });
+
+      await sleep(200);
       setTerm((prev) => [
         ...prev,
-        { text: `>>> ARS SCORE: ${r.ars_score} / 100`, tone: r.ars_score >= 70 ? 'err' : r.ars_score >= 40 ? 'warn' : 'ok' },
+        {
+          text: `>>> ARS SCORE: ${r.ars_score} / 100`,
+          tone: r.ars_score >= 70 ? 'err' : r.ars_score >= 40 ? 'warn' : 'ok',
+        },
         { text: `>>> Estimated time-to-exploit: ${r.estimated_time_to_exploit_hours}h`, tone: 'warn' },
       ]);
       await sleep(200);
@@ -478,6 +505,17 @@ export function ScanPage() {
     const d = domain.trim();
     if (!d) return;
     void runScan(d);
+  };
+
+  const onEmailScan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const addr = email.trim();
+    if (!addr) return;
+    setEmailPhase('scanning');
+    setEmailResult([]);
+    const res = await sourceHIBP(addr);
+    setEmailResult(res.findings);
+    setEmailPhase('done');
   };
 
   const allDone = useMemo(() => Object.values(progress).every(Boolean), [progress]);
@@ -520,6 +558,57 @@ export function ScanPage() {
             )}
           </button>
         </form>
+
+        <div className="mt-5 border-t border-border/60 pt-4">
+          <div className="mb-2 inline-flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-400">
+            <Mail className="h-3 w-3" /> Or scan an email address (real HaveIBeenPwned lookup)
+          </div>
+          <form onSubmit={onEmailScan} className="flex flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                disabled={emailPhase === 'scanning'}
+                className="w-full rounded-lg border border-border bg-bg-terminal py-2.5 pl-9 pr-3 font-mono text-sm focus:border-brand-purple focus:outline-none disabled:opacity-70"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={emailPhase === 'scanning' || !email.trim()}
+              className="btn-ghost !px-4 !py-2.5"
+            >
+              {emailPhase === 'scanning' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Checking HIBP…
+                </>
+              ) : (
+                <>
+                  Check breaches <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </form>
+          {emailPhase === 'done' && emailResult.length ? (
+            <ul className="mt-3 space-y-2">
+              {emailResult.map((f) => (
+                <li
+                  key={f.id}
+                  className="rounded-lg border border-border bg-bg-terminal/50 p-3 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <SeverityBadge severity={f.severity} />
+                    <span className="text-white font-semibold">{f.title}</span>
+                  </div>
+                  <div className="mt-1 font-mono text-[11px] text-slate-400">{f.description}</div>
+                  <div className="mt-1 text-[11px] text-slate-500">{f.meaning}</div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
       </div>
 
       {phase !== 'idle' ? (

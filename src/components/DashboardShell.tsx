@@ -8,6 +8,7 @@ import {
   LogOut,
   Radar,
   Settings,
+  ShieldCheck,
   ShieldHalf,
   Sparkles,
   X,
@@ -20,12 +21,13 @@ import { ArsBadge } from './ui/ArsBadge';
 import { useEffect, useRef, useState } from 'react';
 
 const NAV = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/scan', label: 'New Scan', icon: Radar },
-  { to: '/phantomshield', label: 'PhantomShield', icon: ShieldHalf },
-  { to: '/alerts', label: 'Alerts', icon: Bell },
-  { to: '/reports', label: 'Reports', icon: FileSearch },
-  { to: '/settings', label: 'Settings', icon: Settings },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, enterprise: false },
+  { to: '/scan', label: 'New Scan', icon: Radar, enterprise: false },
+  { to: '/phantomshield', label: 'PhantomShield', icon: ShieldHalf, enterprise: false },
+  { to: '/alerts', label: 'Alerts', icon: Bell, enterprise: false },
+  { to: '/protect', label: 'Protect', icon: ShieldCheck, enterprise: true },
+  { to: '/reports', label: 'Reports', icon: FileSearch, enterprise: false },
+  { to: '/settings', label: 'Settings', icon: Settings, enterprise: false },
 ];
 
 const SHORTCUTS: Array<[string, string]> = [
@@ -74,6 +76,52 @@ function ShortcutsModal({ open, onClose }: { open: boolean; onClose: () => void 
   );
 }
 
+function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const navigate = useNavigate();
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-6 animate-fade-in"
+      onClick={onClose}
+    >
+      <div className="card w-full max-w-md p-6 shadow-glow" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
+            <ShieldCheck className="h-4 w-4" /> Enterprise feature
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-100" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full border border-brand-amber/40 bg-brand-amber/10 text-brand-amber">
+            <ShieldCheck className="h-7 w-7" />
+          </div>
+          <div className="mt-4 text-xl font-bold text-white">Autonomous defense</div>
+          <p className="mt-2 text-sm text-slate-400">
+            Available on the Enterprise plan (₹9,999/month). Upgrade to let MirrorTrap fight
+            attackers automatically — no human intervention needed.
+          </p>
+        </div>
+        <div className="mt-5 flex justify-center gap-3">
+          <button
+            className="btn-primary !bg-brand-amber hover:!bg-brand-amber"
+            onClick={() => {
+              onClose();
+              navigate('/#pricing');
+            }}
+          >
+            Upgrade to Enterprise
+          </button>
+          <button className="btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
@@ -103,10 +151,12 @@ function DemoBanner({ onDismiss }: { onDismiss: () => void }) {
 }
 
 export function DashboardShell() {
-  const { user, signOut, demoMode, setDemoMode, latestScan, alerts, simulateAttack } = useApp();
+  const { user, signOut, demoMode, setDemoMode, latestScan, alerts, simulateAttack, isEnterprise } =
+    useApp();
   const navigate = useNavigate();
   const [quickDomain, setQuickDomain] = useState('');
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const unread = alerts.filter((a) => a.status === 'open').length;
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -230,28 +280,55 @@ export function DashboardShell() {
         {/* Sidebar */}
         <aside className="hidden w-60 shrink-0 border-r border-border/60 bg-[#0D0B1A]/60 md:block">
           <nav className="sticky top-14 flex flex-col gap-1 p-3">
-            {NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
-                    isActive
-                      ? 'bg-brand-purple/15 text-white shadow-glow'
-                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
-                  )
-                }
-              >
-                <Icon className="h-4 w-4" />
-                <span className="flex-1">{label}</span>
-                {to === '/alerts' && unread > 0 ? (
-                  <span className="rounded bg-brand-danger/30 px-1.5 py-0.5 text-[10px] font-semibold text-brand-danger">
-                    {unread}
-                  </span>
-                ) : null}
-              </NavLink>
-            ))}
+            {NAV.map(({ to, label, icon: Icon, enterprise }) => {
+              const gated = enterprise && !isEnterprise;
+              const itemInner = (
+                <>
+                  <Icon className="h-4 w-4" />
+                  <span className="flex-1">{label}</span>
+                  {enterprise ? (
+                    <span
+                      className="rounded bg-brand-amber/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-brand-amber"
+                      title="Enterprise plan only"
+                    >
+                      ENT
+                    </span>
+                  ) : null}
+                  {to === '/alerts' && unread > 0 ? (
+                    <span className="rounded bg-brand-danger/30 px-1.5 py-0.5 text-[10px] font-semibold text-brand-danger">
+                      {unread}
+                    </span>
+                  ) : null}
+                </>
+              );
+              if (gated) {
+                return (
+                  <button
+                    key={to}
+                    onClick={() => setUpgradeOpen(true)}
+                    className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100"
+                  >
+                    {itemInner}
+                  </button>
+                );
+              }
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  className={({ isActive }) =>
+                    cn(
+                      'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors',
+                      isActive
+                        ? 'bg-brand-purple/15 text-white shadow-glow'
+                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
+                    )
+                  }
+                >
+                  {itemInner}
+                </NavLink>
+              );
+            })}
             <div className="mt-auto pt-6">
               <div className="card p-3 text-[11px] text-slate-400">
                 <div className="mb-1 flex items-center gap-1.5 text-brand-purple">
@@ -271,6 +348,7 @@ export function DashboardShell() {
       </div>
 
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
+      <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   );
 }
