@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { Logo } from '@/components/Logo';
+import { ChatAssistant } from '@/components/ChatAssistant';
 import { useEffect, useState } from 'react';
 
 const HERO_TERMINAL_LINES: Array<{ text: string; tone: 'dim' | 'ok' | 'warn' | 'err' | 'cmd' }> = [
@@ -415,6 +416,7 @@ export function LandingPage() {
           </div>
         </div>
       </footer>
+      <ChatAssistant />
     </div>
   );
 }

@@ -19,7 +19,10 @@ import {
 import {
   Bar,
   BarChart,
+  Cell,
   CartesianGrid,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -259,92 +262,307 @@ code{background:#0A0814;padding:2px 6px;border-radius:4px;color:#EF9F27}
 </body></html>`;
 }
 
-const REGIONS = [
-  { region: 'Eastern Europe', pct: 47 },
-  { region: 'Southeast Asia', pct: 28 },
-  { region: 'Middle East', pct: 12 },
-  { region: 'Other', pct: 13 },
-];
+const ATTACK_TYPE_COLORS = ['#F09595', '#EF9F27', '#7F77DD', '#FB923C', '#9F1239'];
 
-const HOT_IPS = [
-  { ip: '185.220.101.47', flag: '🇷🇴', country: 'Romania', lastSeen: '2m ago' },
-  { ip: '193.189.100.203', flag: '🇷🇺', country: 'Russia', lastSeen: '11m ago' },
-  { ip: '45.153.160.138', flag: '🇨🇳', country: 'China', lastSeen: '34m ago' },
-];
+function inferAttackType(a: Alert): string {
+  const blob = `${a.asset_used} ${a.classification.label} ${a.behavior.pattern} ${a.behavior.requests}`.toLowerCase();
+  if (/login|password|credential|auth|sso/.test(blob)) return 'Credential Stuffing';
+  if (/port|scan|probe|nmap/.test(blob)) return 'Port Scanning';
+  if (/osint|recon|spider|enum/.test(blob)) return 'OSINT Scraping';
+  if (/sql|injection|union|or 1=1|'\s*or/.test(blob)) return 'SQL Injection';
+  if (/brute|force|dictionary|spray/.test(blob)) return 'Brute Force';
+  if (a.classification.label === 'Automated Recon Bot') return 'OSINT Scraping';
+  return 'Brute Force';
+}
 
-function RegionalThreatChart() {
+function relativeTime(iso: string): string {
+  const diff = Date.now() - +new Date(iso);
+  const s = Math.max(1, Math.round(diff / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return `${d}d ago`;
+}
+
+function AttackOriginIntelligence({ alerts }: { alerts: Alert[] }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const int = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(int);
+  }, []);
+
+  const perCountry = useMemo(() => {
+    const map = new Map<string, { flag: string; country: string; count: number }>();
+    alerts.forEach((a) => {
+      const key = a.country || 'Unknown';
+      const entry = map.get(key) ?? { flag: a.country_flag || '🏴', country: key, count: 0 };
+      entry.count += 1;
+      map.set(key, entry);
+    });
+    return [...map.values()].sort((a, b) => b.count - a.count);
+  }, [alerts]);
+
+  const topCountries = perCountry.slice(0, 8);
+  const maxCount = Math.max(1, ...topCountries.map((c) => c.count));
+  const chartData = topCountries.map((c) => ({
+    label: `${c.flag} ${c.country}`,
+    count: c.count,
+    tone:
+      c.count >= maxCount * 0.66
+        ? '#F09595'
+        : c.count >= maxCount * 0.33
+          ? '#EF9F27'
+          : '#1D9E75',
+  }));
+
+  const topOrigin = perCountry[0];
+
+  const attackTypes = useMemo(() => {
+    const map = new Map<string, number>();
+    alerts.forEach((a) => {
+      const t = inferAttackType(a);
+      map.set(t, (map.get(t) ?? 0) + 1);
+    });
+    const entries = [...map.entries()].map(([name, value]) => ({ name, value }));
+    return entries.length
+      ? entries
+      : [
+          { name: 'Credential Stuffing', value: 41 },
+          { name: 'Port Scanning', value: 28 },
+          { name: 'OSINT Scraping', value: 18 },
+          { name: 'SQL Injection', value: 8 },
+          { name: 'Brute Force', value: 5 },
+        ];
+  }, [alerts]);
+
+  const hotIps = useMemo(() => {
+    const byIp = new Map<
+      string,
+      { ip: string; flag: string; country: string; count: number; last: string }
+    >();
+    alerts.forEach((a) => {
+      const prev = byIp.get(a.ip);
+      if (!prev) {
+        byIp.set(a.ip, {
+          ip: a.ip,
+          flag: a.country_flag,
+          country: a.country,
+          count: 1,
+          last: a.timestamp,
+        });
+      } else {
+        prev.count += 1;
+        if (+new Date(a.timestamp) > +new Date(prev.last)) prev.last = a.timestamp;
+      }
+    });
+    return [...byIp.values()]
+      .sort((a, b) => +new Date(b.last) - +new Date(a.last))
+      .slice(0, 3);
+  }, [alerts]);
+
+  const lastUpdate = alerts[0]?.timestamp ?? new Date(now).toISOString();
+  const secondsAgo = Math.max(0, Math.round((now - +new Date(lastUpdate)) / 1000));
+
   return (
-    <div className="card p-5">
-      <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
-        <Globe2 className="h-3.5 w-3.5" /> Attacker Origin Map
-      </div>
-      <div className="text-sm text-slate-400">
-        Attack origin distribution — last 30 days
-      </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-[1fr_220px]">
-        <div style={{ width: '100%', height: 220 }}>
-          <ResponsiveContainer>
-            <BarChart
-              data={REGIONS}
-              layout="vertical"
-              margin={{ top: 4, right: 16, bottom: 4, left: 0 }}
-            >
-              <CartesianGrid stroke="rgba(127,119,221,0.1)" strokeDasharray="4 4" />
-              <XAxis
-                type="number"
-                domain={[0, 60]}
-                stroke="#7F77DD"
-                tick={{ fill: '#8c8aa6', fontSize: 11 }}
-                tickFormatter={(v) => `${v}%`}
-              />
-              <YAxis
-                type="category"
-                dataKey="region"
-                stroke="#7F77DD"
-                tick={{ fill: '#e6e4f2', fontSize: 11 }}
-                width={120}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: '#0A0814',
-                  border: '1px solid rgba(127,119,221,0.3)',
-                  borderRadius: 10,
-                  color: '#e6e4f2',
-                  fontSize: 12,
-                }}
-                formatter={(v) => [`${v}%`, 'Share']}
-                cursor={{ fill: 'rgba(240,149,149,0.05)' }}
-              />
-              <Bar
-                dataKey="pct"
-                fill="#F09595"
-                radius={[0, 6, 6, 0]}
-                isAnimationActive
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-slate-400">
-            Hot IPs (last 24h)
+    <div className="space-y-4">
+      {/* 3 stat cards */}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="card p-4">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-danger">
+            <AlertTriangle className="h-3 w-3" /> Total attacks
           </div>
-          <ul className="mt-2 space-y-2">
-            {HOT_IPS.map((h) => (
-              <li
-                key={h.ip}
-                className="flex items-center gap-2 rounded-lg border border-border bg-bg-terminal/50 p-2"
+          <AnimatedCounter
+            value={alerts.length}
+            flash={false}
+            className="mt-1 block font-mono text-3xl font-bold text-brand-danger tabular-nums"
+          />
+        </div>
+        <div className="card p-4">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-purple">
+            <Globe2 className="h-3 w-3" /> Countries detected
+          </div>
+          <AnimatedCounter
+            value={perCountry.length}
+            flash={false}
+            className="mt-1 block font-mono text-3xl font-bold text-brand-purple tabular-nums"
+          />
+        </div>
+        <div className="card p-4">
+          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-amber">
+            <Flag className="h-3 w-3" /> Highest threat origin
+          </div>
+          <div className="mt-1 text-2xl font-bold text-brand-amber">
+            {topOrigin ? `${topOrigin.flag} ${topOrigin.country}` : '—'}
+          </div>
+          <div className="text-[11px] text-slate-500">
+            {topOrigin ? `${topOrigin.count} alert${topOrigin.count !== 1 ? 's' : ''}` : 'no data yet'}
+          </div>
+        </div>
+      </div>
+
+      {/* Attack origin chart */}
+      <div className="card p-5">
+        <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
+          <Globe2 className="h-3.5 w-3.5" /> Attack Origin Intelligence
+        </div>
+        <div className="text-sm text-slate-400">
+          Top {topCountries.length} countries by attack volume — live from alerts state
+        </div>
+
+        {chartData.length === 0 ? (
+          <div className="mt-6 rounded-lg border border-dashed border-border bg-bg-terminal/40 p-6 text-center text-sm text-slate-400">
+            No alerts yet. Trigger one with Simulate Attack.
+          </div>
+        ) : (
+          <div className="mt-4" style={{ width: '100%', height: Math.max(260, chartData.length * 36) }}>
+            <ResponsiveContainer>
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 4, right: 24, bottom: 4, left: 12 }}
               >
-                <span className="text-base">{h.flag}</span>
-                <div className="min-w-0 flex-1">
-                  <div className="font-mono text-[12px] text-white">{h.ip}</div>
-                  <div className="text-[10px] text-slate-500">
-                    {h.country} · {h.lastSeen}
+                <CartesianGrid stroke="rgba(127,119,221,0.1)" strokeDasharray="4 4" />
+                <XAxis
+                  type="number"
+                  domain={[0, maxCount]}
+                  stroke="#7F77DD"
+                  tick={{ fill: '#8c8aa6', fontSize: 11 }}
+                  allowDecimals={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="label"
+                  stroke="#7F77DD"
+                  tick={{ fill: '#e6e4f2', fontSize: 12 }}
+                  width={140}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: '#0A0814',
+                    border: '1px solid rgba(127,119,221,0.3)',
+                    borderRadius: 10,
+                    color: '#e6e4f2',
+                    fontSize: 12,
+                  }}
+                  cursor={{ fill: 'rgba(127,119,221,0.08)' }}
+                  formatter={(v) => [`${v}`, 'Attacks']}
+                />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]} isAnimationActive>
+                  {chartData.map((d, i) => (
+                    <Cell key={i} fill={d.tone} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        <div className="mt-3 text-[11px] text-slate-500">
+          Last updated: {secondsAgo}s ago
+        </div>
+      </div>
+
+      {/* Attack type donut */}
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+        <div className="card p-5">
+          <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
+            <ActivitySquare className="h-3.5 w-3.5" /> Attack type breakdown
+          </div>
+          <div className="text-sm text-slate-400">
+            Classified from alert payload signatures
+          </div>
+          <div className="mt-3 grid gap-4 md:grid-cols-[1fr_auto]">
+            <div style={{ width: '100%', height: 220 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={attackTypes}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={2}
+                  >
+                    {attackTypes.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={ATTACK_TYPE_COLORS[i % ATTACK_TYPE_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: '#0A0814',
+                      border: '1px solid rgba(127,119,221,0.3)',
+                      borderRadius: 10,
+                      color: '#e6e4f2',
+                      fontSize: 12,
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="space-y-1.5 text-[12px] text-slate-300">
+              {attackTypes.map((t, i) => (
+                <li key={t.name} className="flex items-center gap-2">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-sm"
+                    style={{ background: ATTACK_TYPE_COLORS[i % ATTACK_TYPE_COLORS.length] }}
+                  />
+                  <span className="flex-1">{t.name}</span>
+                  <span className="font-mono text-slate-200">{t.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Hot IPs */}
+        <div className="card p-5">
+          <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-danger">
+            <Crosshair className="h-3.5 w-3.5" /> Hot IPs right now
+          </div>
+          <div className="text-sm text-slate-400">
+            3 most recent unique attacker addresses
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {hotIps.length === 0
+              ? Array.from({ length: 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-lg border border-dashed border-border bg-bg-terminal/40 p-3 text-center text-[11px] text-slate-500"
+                  >
+                    No attackers yet
                   </div>
-                </div>
-                <Crosshair className="h-3.5 w-3.5 text-brand-danger" />
-              </li>
-            ))}
-          </ul>
+                ))
+              : hotIps.map((h) => (
+                  <div
+                    key={h.ip}
+                    className="rounded-lg border border-brand-danger/30 bg-brand-danger/5 p-3"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl leading-none">{h.flag}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-mono text-[12px] text-white">
+                          {h.ip}
+                        </div>
+                        <div className="truncate text-[11px] text-slate-400">
+                          {h.country}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-500">
+                        last seen {relativeTime(h.last)}
+                      </span>
+                      <span className="font-mono text-brand-danger">×{h.count}</span>
+                    </div>
+                  </div>
+                ))}
+          </div>
         </div>
       </div>
     </div>
@@ -518,7 +736,7 @@ export function AlertsPage() {
         </div>
       </div>
 
-      <RegionalThreatChart />
+      <AttackOriginIntelligence alerts={alerts} />
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <div className="card p-4">

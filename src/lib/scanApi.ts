@@ -1,4 +1,4 @@
-import type { Finding, ScanResult, Severity } from './types';
+import type { Finding, ScanResult, ScanSource, Severity } from './types';
 import { computeArsScore } from './mockData';
 import { supabase, supabaseEnabled } from './supabase';
 
@@ -12,14 +12,27 @@ function mkId() {
   return `f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function finding(
-  severity: Severity,
-  source: Finding['source'],
-  title: string,
-  description: string,
-  meaning: string,
-): Finding {
-  return { id: mkId(), severity, source, title, description, meaning };
+interface FindingInit {
+  severity: Severity;
+  source: Finding['source'];
+  title: string;
+  description: string;
+  meaning: string;
+  isReal?: boolean;
+  real_data?: unknown;
+}
+
+function finding(i: FindingInit): Finding {
+  return {
+    id: mkId(),
+    severity: i.severity,
+    source: i.source,
+    title: i.title,
+    description: i.description,
+    meaning: i.meaning,
+    isReal: i.isReal ?? true,
+    real_data: i.real_data,
+  };
 }
 
 async function safeJson<T>(url: string, init?: RequestInit): Promise<T | null> {
@@ -60,55 +73,89 @@ export async function sourceDNS(domain: string): Promise<SourceResult> {
   const nameservers = (ns?.Answer ?? []).map((r) => r.data).slice(0, 3);
   const txtRecs = (txt?.Answer ?? [])
     .map((r) => r.data.replace(/"/g, ''))
-    .slice(0, 5);
+    .slice(0, 8);
+
+  // Tech fingerprinting from TXT/MX.
+  const tech: string[] = [];
+  if (mailServers.some((m) => /google/i.test(m))) tech.push('Google Workspace');
+  if (mailServers.some((m) => /outlook|microsoft/i.test(m))) tech.push('Microsoft 365');
+  if (txtRecs.some((t) => /cloudflare/i.test(t))) tech.push('Cloudflare CDN');
+  if (txtRecs.some((t) => /salesforce/i.test(t))) tech.push('Salesforce CRM');
+  if (txtRecs.some((t) => /hubspot/i.test(t))) tech.push('HubSpot');
+  if (txtRecs.some((t) => /stripe/i.test(t))) tech.push('Stripe payments');
+  if (txtRecs.some((t) => /atlassian/i.test(t))) tech.push('Atlassian');
+  if (txtRecs.some((t) => /zoho/i.test(t))) tech.push('Zoho');
+  if (txtRecs.some((t) => /v=spf1/i.test(t))) tech.push('SPF configured');
+  if (txtRecs.some((t) => /dkim/i.test(t))) tech.push('DKIM keys published');
 
   const findings: Finding[] = [];
   if (ips.length) {
     findings.push(
-      finding(
-        'LOW',
-        'DNS',
-        `${ips.length} public IP(s) exposed via A record`,
-        `Resolved: ${ips.join(', ')}`,
-        'Public IPs reveal hosting provider and can be reverse-looked for co-hosted services.',
-      ),
+      finding({
+        severity: 'LOW',
+        source: 'DNS',
+        title: `${ips.length} public IP(s) exposed via A record`,
+        description: `Resolved: ${ips.join(', ')}`,
+        meaning:
+          'Public IPs reveal hosting provider and can be reverse-looked for co-hosted services.',
+        real_data: { ips, mailServers, nameservers, txtRecs, tech },
+      }),
     );
   }
   if (mailServers.length) {
     findings.push(
-      finding(
-        'LOW',
-        'DNS',
-        `Mail server: ${mailServers[0]}`,
-        `MX chain: ${mailServers.join(' → ')}`,
-        'Mail provider fingerprints leak useful context for phishing campaigns targeting your staff.',
-      ),
+      finding({
+        severity: 'LOW',
+        source: 'DNS',
+        title: `Mail server: ${mailServers[0]}`,
+        description: `MX chain: ${mailServers.join(' → ')}`,
+        meaning:
+          'Mail provider fingerprints leak useful context for phishing campaigns targeting your staff.',
+        real_data: { mailServers },
+      }),
     );
   }
-  const spf = txtRecs.find((t) => t.startsWith('v=spf1'));
+  if (tech.length) {
+    findings.push(
+      finding({
+        severity: tech.length > 3 ? 'MEDIUM' : 'LOW',
+        source: 'DNS',
+        title: `Tech stack identified: ${tech.slice(0, 4).join(', ')}${tech.length > 4 ? '…' : ''}`,
+        description: `Detected via DNS TXT/MX: ${tech.join(' · ')}`,
+        meaning:
+          'Attackers use tech-stack signals to pre-pick exploit kits and credential-reuse playbooks before touching your network.',
+        real_data: { tech, txtRecs },
+      }),
+    );
+  }
+  const spf = txtRecs.find((t) => /^v=spf1/i.test(t));
   if (!spf) {
     findings.push(
-      finding(
-        'MEDIUM',
-        'DNS',
-        'No SPF record detected',
-        `TXT records: ${txtRecs.length ? txtRecs.join(' | ') : '(none)'}`,
-        'Missing SPF lets attackers spoof email from your domain with trivial effort.',
-      ),
+      finding({
+        severity: 'MEDIUM',
+        source: 'DNS',
+        title: 'No SPF record detected',
+        description: `TXT records: ${txtRecs.length ? txtRecs.slice(0, 3).join(' | ') : '(none)'}`,
+        meaning:
+          'Missing SPF lets attackers spoof email from your domain with trivial effort.',
+        real_data: { txtRecs },
+      }),
     );
   }
   if (nameservers.length) {
     findings.push(
-      finding(
-        'LOW',
-        'DNS',
-        `Nameservers: ${nameservers.map((n) => n.replace(/\.$/, '')).join(', ')}`,
-        'Authoritative NS records resolved via public DNS.',
-        'DNS hosting provider is public knowledge and often hints at the overall tech stack.',
-      ),
+      finding({
+        severity: 'LOW',
+        source: 'DNS',
+        title: `Nameservers: ${nameservers.map((n) => n.replace(/\.$/, '')).join(', ')}`,
+        description: 'Authoritative NS records resolved via public DNS.',
+        meaning:
+          'DNS hosting provider is public knowledge and often hints at the overall tech stack.',
+        real_data: { nameservers },
+      }),
     );
   }
-  return { findings, raw: { ips, mailServers, nameservers, txtRecs } };
+  return { findings, raw: { ips, mailServers, nameservers, txtRecs, tech } };
 }
 
 /* ---------------------------- crt.sh subdomains ------------------------- */
@@ -123,13 +170,16 @@ export async function sourceCrtSh(domain: string): Promise<SourceResult> {
   if (!data || !Array.isArray(data)) {
     return {
       findings: [
-        finding(
-          'LOW',
-          'crt.sh',
-          'Subdomain enumeration skipped',
-          'crt.sh did not return usable data from the browser (CORS or rate-limit).',
-          'Re-run via the Supabase Edge Function osint-scan for server-side fetch.',
-        ),
+        finding({
+          severity: 'LOW',
+          source: 'crt.sh',
+          title: 'Subdomain enumeration skipped',
+          description:
+            'crt.sh did not return usable data from the browser (CORS or rate-limit).',
+          meaning:
+            'Re-run via the Supabase Edge Function osint-proxy for server-side fetch.',
+          isReal: false,
+        }),
       ],
       raw: null,
       error: 'crt.sh unreachable from browser',
@@ -146,31 +196,145 @@ export async function sourceCrtSh(domain: string): Promise<SourceResult> {
   const subs = Array.from(set)
     .filter((s) => s !== domain.toLowerCase())
     .sort();
-  const risky = subs.filter((s) => /dev\.|staging\.|test\.|internal\.|admin\.|api\.|vpn\.|legacy\.|old\.|qa\./.test(s));
+  const risky = subs.filter((s) =>
+    /dev\.|staging\.|test\.|internal\.|admin\.|api\.|vpn\.|legacy\.|old\.|qa\./.test(s),
+  );
   const findings: Finding[] = [];
   if (subs.length) {
     findings.push(
-      finding(
-        subs.length > 25 ? 'HIGH' : 'MEDIUM',
-        'crt.sh',
-        `${subs.length} subdomain(s) enumerated via CT logs`,
-        `Sample: ${subs.slice(0, 8).join(', ')}${subs.length > 8 ? ` (+${subs.length - 8} more)` : ''}`,
-        'Certificate Transparency logs are fully public — every subdomain you ever issued a TLS cert for is indexed.',
-      ),
+      finding({
+        severity: subs.length > 25 ? 'HIGH' : 'MEDIUM',
+        source: 'crt.sh',
+        title: `${subs.length} subdomain(s) enumerated via CT logs`,
+        description: `Sample: ${subs.slice(0, 8).join(', ')}${subs.length > 8 ? ` (+${subs.length - 8} more)` : ''}`,
+        meaning:
+          'Certificate Transparency logs are fully public — every subdomain you ever issued a TLS cert for is indexed. Each one is a potential entry point that may be weaker than the main domain.',
+        real_data: { subdomains: subs },
+      }),
     );
   }
   if (risky.length) {
     findings.push(
-      finding(
-        'HIGH',
-        'crt.sh',
-        `${risky.length} sensitive-looking subdomain(s) exposed`,
-        risky.slice(0, 6).join(', '),
-        'Dev/staging/admin subdomains often run older, less-hardened versions of production — prime targets.',
-      ),
+      finding({
+        severity: 'HIGH',
+        source: 'crt.sh',
+        title: `${risky.length} sensitive-looking subdomain(s) exposed`,
+        description: risky.slice(0, 6).join(', '),
+        meaning:
+          'Dev/staging/admin subdomains often run older, less-hardened versions of production — prime targets.',
+        real_data: { subdomains: risky },
+      }),
     );
   }
   return { findings, raw: subs };
+}
+
+/* -------------------------- Shodan InternetDB --------------------------- */
+
+interface ShodanDb {
+  ip?: string;
+  ports?: number[];
+  vulns?: string[];
+  hostnames?: string[];
+  cpes?: string[];
+  tags?: string[];
+}
+
+const PORT_DESCRIPTIONS: Record<number, string> = {
+  21: 'FTP (file transfer)',
+  22: 'SSH (remote shell)',
+  23: 'Telnet (legacy)',
+  25: 'SMTP (mail)',
+  53: 'DNS',
+  80: 'HTTP',
+  110: 'POP3',
+  143: 'IMAP',
+  443: 'HTTPS',
+  445: 'SMB (Windows file share)',
+  465: 'SMTPS',
+  587: 'SMTP submission',
+  993: 'IMAPS',
+  995: 'POP3S',
+  1433: 'MSSQL database',
+  1521: 'Oracle DB',
+  2082: 'cPanel',
+  2083: 'cPanel SSL',
+  3000: 'Node.js dev server',
+  3306: 'MySQL database',
+  3389: 'RDP (Windows remote desktop)',
+  5432: 'PostgreSQL database',
+  5900: 'VNC',
+  5984: 'CouchDB',
+  6379: 'Redis cache',
+  7474: 'Neo4j',
+  8000: 'HTTP-alt',
+  8080: 'HTTP proxy',
+  8443: 'HTTPS-alt',
+  8888: 'HTTP-alt',
+  9200: 'Elasticsearch',
+  9300: 'Elasticsearch cluster',
+  11211: 'Memcached',
+  27017: 'MongoDB',
+  27018: 'MongoDB shard',
+};
+
+export function describePort(p: number): string {
+  return PORT_DESCRIPTIONS[p] ?? 'Unknown service';
+}
+
+const DANGEROUS_PORTS = new Set([21, 22, 23, 3306, 5432, 27017, 6379, 9200, 8080, 8443, 3389, 445, 1433]);
+
+export async function sourceShodan(domain: string, ip: string): Promise<SourceResult> {
+  if (!ip) return { findings: [], raw: null };
+  const data = await safeJson<ShodanDb>(`https://internetdb.shodan.io/${encodeURIComponent(ip)}`);
+  if (!data) {
+    return { findings: [], raw: null, error: 'shodan-internetdb-unreachable' };
+  }
+  const ports = data.ports ?? [];
+  const vulns = data.vulns ?? [];
+  const dangerous = ports.filter((p) => DANGEROUS_PORTS.has(p));
+  const findings: Finding[] = [];
+
+  if (ports.length === 0 && vulns.length === 0) {
+    findings.push(
+      finding({
+        severity: 'LOW',
+        source: 'Shodan',
+        title: `${ip} — no exposed services detected`,
+        description: `Shodan InternetDB found no indexed open ports for ${domain}.`,
+        meaning:
+          'Good sign — no public scanners have observed this IP advertising services recently.',
+        real_data: { ip, ports: [], vulns: [] },
+      }),
+    );
+  }
+  if (ports.length > 0) {
+    findings.push(
+      finding({
+        severity: dangerous.length > 0 ? 'HIGH' : 'MEDIUM',
+        source: 'Shodan',
+        title: `${ports.length} open port(s) on ${ip}${dangerous.length > 0 ? ` · ${dangerous.length} high-risk` : ''}`,
+        description: `Open: ${ports.slice(0, 10).join(', ')}${ports.length > 10 ? '…' : ''}`,
+        meaning:
+          'Every public port is continuously scanned by attacker bots. Database and admin ports broadcast your stack version and invite CVE-targeted exploits.',
+        real_data: { ip, ports, dangerous },
+      }),
+    );
+  }
+  if (vulns.length > 0) {
+    findings.push(
+      finding({
+        severity: 'CRITICAL',
+        source: 'Shodan',
+        title: `${vulns.length} known CVE(s) indexed for ${ip}`,
+        description: `CVEs: ${vulns.slice(0, 5).join(', ')}${vulns.length > 5 ? '…' : ''}`,
+        meaning:
+          'Shodan has already observed exploitable CVEs on this IP. Attackers use the same feed to pick targets — patch immediately or firewall off.',
+        real_data: { ip, vulns, cpes: data.cpes },
+      }),
+    );
+  }
+  return { findings, raw: { ip, ports, vulns, hostnames: data.hostnames, cpes: data.cpes } };
 }
 
 /* ------------------------------ ipapi.co -------------------------------- */
@@ -192,16 +356,79 @@ export async function sourceIpInfo(ip: string): Promise<SourceResult> {
   const findings: Finding[] = [];
   if (data.org) {
     findings.push(
-      finding(
-        'LOW',
-        'Shodan',
-        `Hosting exposed: ${data.org}`,
-        `${data.ip} — ${data.city ?? ''} ${data.region ?? ''} ${data.country_name ?? ''}, ${data.asn ?? ''}`.trim(),
-        'Hosting/ASN info plus region tell an attacker exactly where your infrastructure sits and what provider controls it.',
-      ),
+      finding({
+        severity: 'LOW',
+        source: 'Shodan',
+        title: `Hosting exposed: ${data.org}`,
+        description: `${data.ip} — ${data.city ?? ''} ${data.region ?? ''} ${data.country_name ?? ''}, ${data.asn ?? ''}`.trim(),
+        meaning:
+          'Hosting/ASN info plus region tells an attacker exactly where your infrastructure sits and what provider controls it.',
+        real_data: data,
+      }),
     );
   }
   return { findings, raw: data };
+}
+
+/* --------------------------- Security Headers --------------------------- */
+
+/**
+ * securityheaders.com does not support CORS for its grade endpoint, so we
+ * call it via the optional Supabase osint-proxy edge function. Without the
+ * proxy, we return an ESTIMATED finding so the UI still gets a card.
+ */
+export async function sourceSecurityHeaders(domain: string): Promise<SourceResult> {
+  if (supabaseEnabled && supabase) {
+    try {
+      const { data, error } = await supabase.functions.invoke('osint-proxy', {
+        body: {
+          kind: 'security-headers',
+          url: `https://securityheaders.com/?q=${encodeURIComponent(domain)}&hide=on&followRedirects=on`,
+        },
+      });
+      const grade = (data as { grade?: string } | null)?.grade;
+      if (!error && grade) {
+        const bad = ['F', 'D'].includes(grade);
+        const mid = ['C', 'B'].includes(grade);
+        return {
+          findings: [
+            finding({
+              severity: bad ? 'HIGH' : mid ? 'MEDIUM' : 'LOW',
+              source: 'Security Headers',
+              title: bad || mid
+                ? `Security headers grade: ${grade} — missing critical headers`
+                : `Security headers grade: ${grade} — well configured`,
+              description:
+                'Source: securityheaders.com. Checked HSTS, CSP, X-Frame-Options, Permissions-Policy, Referrer-Policy.',
+              meaning:
+                'Missing security headers make your site vulnerable to clickjacking, XSS, and MIME-type attacks — often exploited as first steps.',
+              real_data: { grade },
+            }),
+          ],
+          raw: data,
+        };
+      }
+    } catch {
+      /* fall through to estimated */
+    }
+  }
+  // Estimated fallback — still give the UI a signal, but mark not real.
+  return {
+    findings: [
+      finding({
+        severity: 'MEDIUM',
+        source: 'Security Headers',
+        title: 'Security header analysis (estimated)',
+        description:
+          'Browser CORS blocks direct fetch. Deploy the osint-proxy edge function for a real securityheaders.com grade.',
+        meaning:
+          'Missing HSTS / CSP / X-Frame-Options leaves the site open to XSS, clickjacking, and MIME-sniffing attacks.',
+        isReal: false,
+      }),
+    ],
+    raw: null,
+    error: 'security-headers-estimated',
+  };
 }
 
 /* ------------------------- GitHub public search ------------------------- */
@@ -210,6 +437,9 @@ interface GhItem {
   full_name?: string;
   name?: string;
   html_url?: string;
+  stargazers_count?: number;
+  language?: string;
+  updated_at?: string;
 }
 interface GhResp {
   total_count?: number;
@@ -217,7 +447,6 @@ interface GhResp {
 }
 
 export async function sourceGitHub(domain: string): Promise<SourceResult> {
-  // Unauthenticated repo search (code search requires auth). Still surfaces org-name matches.
   const q = encodeURIComponent(domain.replace(/\.[a-z]+$/i, ''));
   const data = await safeJson<GhResp>(
     `https://api.github.com/search/repositories?q=${q}+in:name,description&per_page=5`,
@@ -225,15 +454,26 @@ export async function sourceGitHub(domain: string): Promise<SourceResult> {
   if (!data || !data.items) return { findings: [], raw: null, error: 'github unreachable' };
   const findings: Finding[] = [];
   if ((data.total_count ?? 0) > 0) {
-    const names = data.items.slice(0, 5).map((i) => i.full_name ?? i.name ?? '').filter(Boolean);
+    const repos = data.items.slice(0, 5);
+    const names = repos.map((i) => i.full_name ?? i.name ?? '').filter(Boolean);
     findings.push(
-      finding(
-        data.total_count! >= 20 ? 'HIGH' : 'MEDIUM',
-        'GitHub',
-        `${data.total_count} public GitHub repo(s) mention your brand`,
-        names.join(', '),
-        'Public repos often contain commits, configs, or old keys referencing your infra. Audit regularly.',
-      ),
+      finding({
+        severity: data.total_count! >= 20 ? 'HIGH' : 'MEDIUM',
+        source: 'GitHub',
+        title: `${data.total_count} public GitHub repo(s) mention your brand`,
+        description: names.join(', '),
+        meaning:
+          'Public repos often contain commits, configs, or old keys referencing your infra. Audit commit history for leaked secrets regularly.',
+        real_data: {
+          repos: repos.map((r) => ({
+            name: r.full_name ?? r.name ?? '',
+            url: r.html_url,
+            stars: r.stargazers_count,
+            language: r.language,
+            updated_at: r.updated_at,
+          })),
+        },
+      }),
     );
   }
   return { findings, raw: data };
@@ -251,7 +491,6 @@ interface HibpBreach {
 
 export async function sourceHIBP(email: string): Promise<SourceResult> {
   if (!email) return { findings: [], raw: null };
-  // HIBP requires a server-side call (CORS + API key). Try Supabase Edge Function first.
   if (supabaseEnabled && supabase) {
     try {
       const { data, error } = await supabase.functions.invoke('osint-scan', {
@@ -267,13 +506,15 @@ export async function sourceHIBP(email: string): Promise<SourceResult> {
   }
   return {
     findings: [
-      finding(
-        'MEDIUM',
-        'HaveIBeenPwned',
-        'HIBP check skipped (no API key configured)',
-        `Configure HIBP_KEY on your Supabase project, then deploy the osint-scan edge function. Email queued: ${email}`,
-        'HIBP requires a server-side key — set it in Supabase → Edge Functions → Secrets.',
-      ),
+      finding({
+        severity: 'MEDIUM',
+        source: 'HaveIBeenPwned',
+        title: 'HIBP check skipped (no API key configured)',
+        description: `Configure HIBP_KEY on your Supabase project, then deploy the osint-scan edge function. Email queued: ${email}`,
+        meaning:
+          'HIBP requires a server-side key — set it in Supabase → Edge Functions → Secrets.',
+        isReal: false,
+      }),
     ],
     raw: null,
     error: 'hibp-not-configured',
@@ -284,13 +525,14 @@ function breachesToFindings(breaches: HibpBreach[], email: string): SourceResult
   if (!breaches.length) {
     return {
       findings: [
-        finding(
-          'LOW',
-          'HaveIBeenPwned',
-          `${email} — no public breaches`,
-          'HIBP returned zero breach records for this address.',
-          'Good sign. Continue monitoring — new breaches surface constantly.',
-        ),
+        finding({
+          severity: 'LOW',
+          source: 'HaveIBeenPwned',
+          title: `${email} — no public breaches`,
+          description: 'HIBP returned zero breach records for this address.',
+          meaning: 'Good sign. Continue monitoring — new breaches surface constantly.',
+          real_data: { email, breaches: [] },
+        }),
       ],
       raw: breaches,
     };
@@ -299,13 +541,14 @@ function breachesToFindings(breaches: HibpBreach[], email: string): SourceResult
   const classes = Array.from(new Set(breaches.flatMap((b) => b.DataClasses ?? [])));
   return {
     findings: [
-      finding(
-        breaches.length >= 3 ? 'CRITICAL' : 'HIGH',
-        'HaveIBeenPwned',
-        `${email} appears in ${breaches.length} breach${breaches.length > 1 ? 'es' : ''}`,
-        names.slice(0, 5).join('; '),
-        `Exposed data classes: ${classes.slice(0, 6).join(', ')}. Rotate this password everywhere and enable MFA.`,
-      ),
+      finding({
+        severity: breaches.length >= 3 ? 'CRITICAL' : 'HIGH',
+        source: 'HaveIBeenPwned',
+        title: `${email} appears in ${breaches.length} breach${breaches.length > 1 ? 'es' : ''}`,
+        description: names.slice(0, 5).join('; '),
+        meaning: `Exposed data classes: ${classes.slice(0, 6).join(', ')}. Rotate this password everywhere and enable MFA.`,
+        real_data: { email, breaches, classes },
+      }),
     ],
     raw: breaches,
   };
@@ -315,34 +558,45 @@ function breachesToFindings(breaches: HibpBreach[], email: string): SourceResult
 
 export interface RealScanOptions {
   domain: string;
-  onSource?: (key: 'DNS' | 'Shodan' | 'crt.sh' | 'GitHub' | 'HaveIBeenPwned', res: SourceResult) => void;
+  onSource?: (
+    key: ScanSource,
+    res: SourceResult,
+  ) => void;
 }
 
 export async function runRealScan(opts: RealScanOptions): Promise<ScanResult> {
   const { domain, onSource } = opts;
+  const t0 = performance.now();
   const dnsRes = await sourceDNS(domain);
   onSource?.('DNS', dnsRes);
 
   const ipFromDns =
     ((dnsRes.raw as { ips?: string[] } | null)?.ips ?? []).find(Boolean) ?? '';
-  const [crt, ipi, gh] = await Promise.all([
+
+  const [crt, ipi, gh, shodan, headers] = await Promise.all([
     sourceCrtSh(domain),
     sourceIpInfo(ipFromDns),
     sourceGitHub(domain),
+    sourceShodan(domain, ipFromDns),
+    sourceSecurityHeaders(domain),
   ]);
   onSource?.('crt.sh', crt);
-  onSource?.('Shodan', ipi);
+  onSource?.('Shodan', shodan.findings.length ? shodan : ipi);
   onSource?.('GitHub', gh);
+  onSource?.('Security Headers', headers);
 
   const pseudoHibp: SourceResult = {
     findings: [
-      finding(
-        'MEDIUM',
-        'HaveIBeenPwned',
-        `Employee-breach heuristics for ${domain}`,
-        'Server-side HIBP lookup requires the Supabase edge function + API key. Use the email-scan input for live HIBP results.',
-        'Until configured, this source reports a neutral signal. Set HIBP_KEY in Supabase → Edge Functions to get real breach data.',
-      ),
+      finding({
+        severity: 'MEDIUM',
+        source: 'HaveIBeenPwned',
+        title: `Employee-breach heuristics for ${domain}`,
+        description:
+          'Use the "Or scan an email address" box above for a live HIBP lookup. Domain-wide scan needs a server-side key.',
+        meaning:
+          'Until configured, this source reports a neutral signal. Set HIBP_KEY in Supabase → Edge Functions to get real breach data.',
+        isReal: false,
+      }),
     ],
     raw: null,
   };
@@ -353,37 +607,65 @@ export async function runRealScan(opts: RealScanOptions): Promise<ScanResult> {
     ...crt.findings,
     ...ipi.findings,
     ...gh.findings,
+    ...shodan.findings,
+    ...headers.findings,
     ...pseudoHibp.findings,
   ];
 
-  // Promote a couple of severities based on real-data volume.
+  // Dedup by title so Shodan+ipapi don't double up.
+  const seen = new Set<string>();
+  const dedup = allFindings.filter((f) => {
+    const k = `${f.source}|${f.title}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
   const subs = (crt.raw as string[] | null) ?? [];
   if (subs.length > 50) {
-    allFindings.push(
-      finding(
-        'HIGH',
-        'crt.sh',
-        'Large subdomain surface area (50+ hostnames)',
-        `Total CT-log entries: ${subs.length}`,
-        'A broad subdomain footprint multiplies the chance of a forgotten or unpatched host. Audit quarterly.',
-      ),
+    dedup.push(
+      finding({
+        severity: 'HIGH',
+        source: 'crt.sh',
+        title: 'Large subdomain surface area (50+ hostnames)',
+        description: `Total CT-log entries: ${subs.length}`,
+        meaning:
+          'A broad subdomain footprint multiplies the chance of a forgotten or unpatched host. Audit quarterly.',
+        real_data: { subdomains: subs },
+      }),
     );
   }
 
-  const score = computeArsScore(allFindings);
+  const score = computeArsScore(dedup);
   const primary =
-    allFindings.find((f) => f.severity === 'CRITICAL')?.title ??
-    allFindings.find((f) => f.severity === 'HIGH')?.title ??
-    allFindings[0]?.title ??
+    dedup.find((f) => f.severity === 'CRITICAL')?.title ??
+    dedup.find((f) => f.severity === 'HIGH')?.title ??
+    dedup[0]?.title ??
     'OSINT enumeration';
+
+  const realSources: ScanSource[] = [];
+  if (dnsRes.findings.some((f) => f.isReal)) realSources.push('DNS');
+  if (crt.findings.some((f) => f.isReal)) realSources.push('crt.sh');
+  if (gh.findings.some((f) => f.isReal)) realSources.push('GitHub');
+  if (shodan.findings.some((f) => f.isReal) || ipi.findings.some((f) => f.isReal))
+    realSources.push('Shodan');
+  if (headers.findings.some((f) => f.isReal)) realSources.push('Security Headers');
+
+  const sorted = [...dedup].sort((a, b) => {
+    const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 } as const;
+    return order[a.severity] - order[b.severity];
+  });
+
   return {
     id: `scan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     domain,
     ars_score: score,
-    findings: allFindings,
+    findings: sorted,
     timestamp: new Date().toISOString(),
     estimated_time_to_exploit_hours: +(Math.max(0.4, 7 - score / 20) + Math.random() * 1.2).toFixed(1),
     primary_entry_path: primary,
     confidence: 70 + Math.floor(Math.random() * 20),
+    real_sources_used: realSources,
+    scan_duration_s: +((performance.now() - t0) / 1000).toFixed(1),
   };
 }

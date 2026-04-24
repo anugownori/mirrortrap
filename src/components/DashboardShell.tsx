@@ -19,6 +19,7 @@ import { useApp } from '@/lib/useApp';
 import { cn, formatDate } from '@/lib/utils';
 import { ArsBadge } from './ui/ArsBadge';
 import { EnterpriseDemo } from './EnterpriseDemo';
+import { ChatAssistant } from './ChatAssistant';
 import { useEffect, useRef, useState } from 'react';
 
 const NAV = [
@@ -377,6 +378,7 @@ export function DashboardShell() {
 
       <ShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+      <ChatAssistant />
     </div>
   );
 }

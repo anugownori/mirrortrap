@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Area,
   CartesianGrid,
@@ -12,12 +12,21 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Check, Download, FileBarChart, Radar, TrendingUp, X } from 'lucide-react';
+import {
+  BadgeDollarSign,
+  Check,
+  Download,
+  FileBarChart,
+  Radar,
+  TrendingUp,
+  X,
+} from 'lucide-react';
 import { useApp } from '@/lib/useApp';
 import { ArsBadge } from '@/components/ui/ArsBadge';
 import { arsColor, cn, formatDate } from '@/lib/utils';
 import type { ScanResult } from '@/lib/types';
 import { usePageTitle } from '@/lib/usePageTitle';
+import { FinancialImpact } from '@/components/FinancialImpact';
 
 function downloadReport(s: ScanResult) {
   const html = `<!doctype html><html><head><title>MirrorTrap — ${s.domain}</title>
@@ -111,9 +120,19 @@ function Cell({ v }: { v: boolean | 'partial' }) {
   return <X className="inline h-4 w-4 text-slate-600" />;
 }
 
+type Tab = 'overview' | 'financial';
+
 export function ReportsPage() {
   usePageTitle('MirrorTrap — Reports');
-  const { scans, alerts } = useApp();
+  const { scans, alerts, latestScan } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: Tab = (searchParams.get('tab') as Tab) === 'financial' ? 'financial' : 'overview';
+  const setTab = (t: Tab) => {
+    const next = new URLSearchParams(searchParams);
+    if (t === 'overview') next.delete('tab');
+    else next.set('tab', t);
+    setSearchParams(next, { replace: true });
+  };
   const sorted = useMemo(
     () => [...scans].sort((a, b) => +new Date(a.timestamp) - +new Date(b.timestamp)),
     [scans],
@@ -144,13 +163,80 @@ export function ReportsPage() {
         <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
           <FileBarChart className="h-3.5 w-3.5" /> Reports
         </div>
-        <h1 className="mt-1 text-2xl font-bold text-white">Scan history &amp; ARS trend</h1>
+        <h1 className="mt-1 text-2xl font-bold text-white">
+          {activeTab === 'financial'
+            ? 'Financial impact analyzer'
+            : 'Scan history & ARS trend'}
+        </h1>
         <p className="mt-1 text-sm text-slate-400">
-          Historical view of your attack-readiness posture, exportable threat reports per scan,
-          and competitive intelligence vs other security tools.
+          {activeTab === 'financial'
+            ? 'Translate your OSINT findings into real monetary exposure — with industry benchmarks and MirrorTrap ROI.'
+            : 'Historical view of your attack-readiness posture, exportable threat reports per scan, and competitive intelligence vs other security tools.'}
         </p>
+        <div className="mt-4 inline-flex rounded-lg border border-border bg-bg-terminal/60 p-1">
+          <button
+            onClick={() => setTab('overview')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-widest transition-colors',
+              activeTab === 'overview'
+                ? 'bg-brand-purple/25 text-brand-purple'
+                : 'text-slate-400 hover:text-slate-200',
+            )}
+          >
+            <TrendingUp className="h-3.5 w-3.5" /> Overview
+          </button>
+          <button
+            onClick={() => setTab('financial')}
+            className={cn(
+              'inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-widest transition-colors',
+              activeTab === 'financial'
+                ? 'bg-brand-amber/25 text-brand-amber'
+                : 'text-slate-400 hover:text-slate-200',
+            )}
+          >
+            <BadgeDollarSign className="h-3.5 w-3.5" /> Financial Impact
+          </button>
+        </div>
       </div>
 
+      {activeTab === 'financial' ? (
+        <FinancialImpact latestScan={latestScan} />
+      ) : (
+        <OverviewTab
+          scans={scans}
+          alerts={alerts}
+          avg={avg}
+          uniqueDomains={uniqueDomains}
+          sorted={sorted}
+          trend={trend}
+          lineColor={lineColor}
+        />
+      )}
+    </div>
+  );
+}
+
+interface OverviewTabProps {
+  scans: ScanResult[];
+  alerts: ReturnType<typeof useApp>['alerts'];
+  avg: number;
+  uniqueDomains: number;
+  sorted: ScanResult[];
+  trend: Array<{ i: number; label: string; ars: number; domain: string }>;
+  lineColor: string;
+}
+
+function OverviewTab({
+  scans,
+  alerts,
+  avg,
+  uniqueDomains,
+  sorted,
+  trend,
+  lineColor,
+}: OverviewTabProps) {
+  return (
+    <>
       {/* Summary stat row */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Total Scans" value={scans.length} tone="text-white" />
@@ -407,6 +493,6 @@ export function ReportsPage() {
           <Radar className="h-4 w-4" /> New scan
         </Link>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
+  BadgeDollarSign,
   CheckCircle,
   CheckCircle2,
   ChevronDown,
@@ -11,19 +12,22 @@ import {
   Crosshair,
   Database,
   Download,
+  ExternalLink,
   FileKey,
   Globe,
+  Lock,
   Loader2,
   Radar,
   ShieldHalf,
   Sparkles,
+  Wifi,
 } from 'lucide-react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RTooltip } from 'recharts';
 import { SeverityBadge } from '@/components/ui/SeverityBadge';
 import { useApp } from '@/lib/useApp';
 import type { Finding, ScanResult, ScanSource, Severity } from '@/lib/types';
 import { DEMO_SCAN } from '@/lib/mockData';
-import { runRealScan, sourceHIBP } from '@/lib/scanApi';
+import { describePort, runRealScan, sourceHIBP } from '@/lib/scanApi';
 import { Mail } from 'lucide-react';
 import { arsColor, cn, sleep } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
@@ -37,10 +41,11 @@ const SOURCES: Array<{
   tone: 'ok' | 'warn' | 'err';
 }> = [
   { key: 'HaveIBeenPwned', label: 'HaveIBeenPwned API', icon: FileKey, delay: 800, okLine: '3 leaked emails found', tone: 'err' },
-  { key: 'Shodan', label: 'Shodan.io', icon: Cloud, delay: 1200, okLine: '2 exposed services found', tone: 'warn' },
+  { key: 'Shodan', label: 'Shodan InternetDB', icon: Cloud, delay: 1100, okLine: '2 exposed services found', tone: 'warn' },
   { key: 'crt.sh', label: 'crt.sh subdomains', icon: Globe, delay: 1000, okLine: '8 subdomains enumerated', tone: 'ok' },
-  { key: 'GitHub', label: 'GitHub public search', icon: Code2, delay: 1400, okLine: '1 credential pattern found', tone: 'err' },
+  { key: 'GitHub', label: 'GitHub public search', icon: Code2, delay: 1300, okLine: '1 credential pattern found', tone: 'err' },
   { key: 'DNS', label: 'DNS records', icon: Database, delay: 600, okLine: 'Tech stack identified', tone: 'ok' },
+  { key: 'Security Headers', label: 'Security Headers', icon: Lock, delay: 700, okLine: 'Grade returned', tone: 'warn' },
 ];
 
 const toneClass = {
@@ -96,6 +101,181 @@ function ScoreNumber({ target }: { target: number }) {
   );
 }
 
+function RealEstPill({ isReal }: { isReal: boolean | undefined }) {
+  if (isReal) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-md border border-brand-success/40 bg-brand-success/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-brand-success"
+        title="Live public-source data fetched at scan time"
+      >
+        <Wifi className="h-2.5 w-2.5" /> LIVE
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-md border border-brand-amber/40 bg-brand-amber/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-brand-amber"
+      title="Estimated — real API unavailable in this environment"
+    >
+      EST.
+    </span>
+  );
+}
+
+function PortChip({ p }: { p: number }) {
+  const desc = describePort(p);
+  const risky = [21, 22, 23, 3306, 5432, 27017, 6379, 9200, 8080, 8443, 3389, 445, 1433].includes(p);
+  return (
+    <span
+      className={cn(
+        'inline-flex cursor-help items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[11px]',
+        risky
+          ? 'border-brand-danger/40 bg-brand-danger/10 text-brand-danger'
+          : 'border-border bg-bg-terminal/60 text-slate-200',
+      )}
+      title={desc}
+    >
+      {p}
+      <span className="text-[10px] text-slate-500">· {desc.split(' ')[0]}</span>
+    </span>
+  );
+}
+
+interface SubdomainData {
+  subdomains?: string[];
+}
+interface ShodanData {
+  ip?: string;
+  ports?: number[];
+  dangerous?: number[];
+  vulns?: string[];
+}
+interface GhData {
+  repos?: Array<{
+    name: string;
+    url?: string;
+    stars?: number;
+    language?: string | null;
+    updated_at?: string;
+  }>;
+}
+
+function FindingDetail({ f }: { f: Finding }) {
+  const rd = f.real_data as
+    | Partial<SubdomainData & ShodanData & GhData & { tech?: string[]; ips?: string[] }>
+    | undefined;
+  if (!rd) return null;
+
+  if (f.source === 'crt.sh' && rd.subdomains?.length) {
+    const list = rd.subdomains.slice(0, 40);
+    return (
+      <details className="mt-3 rounded-lg border border-border bg-bg-terminal/60 p-3 text-xs text-slate-300">
+        <summary className="cursor-pointer select-none text-[10px] font-bold uppercase tracking-widest text-brand-purple">
+          View {rd.subdomains.length} subdomain(s)
+        </summary>
+        <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+          {list.map((s) => (
+            <li key={s}>
+              <a
+                href={`https://${s}`}
+                target="_blank"
+                rel="noreferrer"
+                className="group inline-flex items-center gap-1 font-mono text-[11px] text-slate-200 hover:text-brand-purple"
+              >
+                <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100" />
+                {s}
+              </a>
+            </li>
+          ))}
+        </ul>
+        {rd.subdomains.length > 40 ? (
+          <div className="mt-2 text-[10px] text-slate-500">
+            Showing first 40 of {rd.subdomains.length}. Download report for the full list.
+          </div>
+        ) : null}
+      </details>
+    );
+  }
+
+  if (f.source === 'Shodan' && (rd.ports?.length || rd.vulns?.length)) {
+    return (
+      <div className="mt-3 space-y-2 rounded-lg border border-border bg-bg-terminal/60 p-3">
+        {rd.ip ? (
+          <div className="text-[11px] text-slate-400">
+            IP: <span className="font-mono text-slate-200">{rd.ip}</span>
+          </div>
+        ) : null}
+        {rd.ports?.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {rd.ports.map((p) => (
+              <PortChip key={p} p={p} />
+            ))}
+          </div>
+        ) : null}
+        {rd.vulns?.length ? (
+          <div className="flex flex-wrap gap-1.5">
+            {rd.vulns.slice(0, 10).map((v) => (
+              <span
+                key={v}
+                className="rounded-md border border-brand-danger/40 bg-brand-danger/10 px-1.5 py-0.5 font-mono text-[11px] text-brand-danger"
+              >
+                {v}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (f.source === 'GitHub' && rd.repos?.length) {
+    return (
+      <ul className="mt-3 space-y-1.5 rounded-lg border border-border bg-bg-terminal/60 p-3 text-xs text-slate-300">
+        {rd.repos.slice(0, 5).map((r) => (
+          <li key={r.name} className="flex items-center gap-2">
+            <ExternalLink className="h-3 w-3 text-slate-500" />
+            {r.url ? (
+              <a
+                href={r.url}
+                target="_blank"
+                rel="noreferrer"
+                className="font-mono text-[11px] text-slate-100 hover:text-brand-purple"
+              >
+                {r.name}
+              </a>
+            ) : (
+              <span className="font-mono text-[11px] text-slate-100">{r.name}</span>
+            )}
+            {typeof r.stars === 'number' ? (
+              <span className="text-[10px] text-slate-500">★ {r.stars}</span>
+            ) : null}
+            {r.language ? (
+              <span className="text-[10px] text-slate-500">· {r.language}</span>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (f.source === 'DNS' && rd.tech?.length) {
+    return (
+      <div className="mt-3 flex flex-wrap gap-1.5 rounded-lg border border-border bg-bg-terminal/60 p-3">
+        {rd.tech.map((t) => (
+          <span
+            key={t}
+            className="rounded-md border border-brand-purple/40 bg-brand-purple/10 px-1.5 py-0.5 text-[11px] text-brand-purple"
+          >
+            {t}
+          </span>
+        ))}
+      </div>
+    );
+  }
+
+  return null;
+}
+
 function FindingCard({ f }: { f: Finding }) {
   const [open, setOpen] = useState(false);
   return (
@@ -103,6 +283,7 @@ function FindingCard({ f }: { f: Finding }) {
       <div className="flex items-start gap-3">
         <SeverityBadge severity={f.severity} />
         <span className="pill">{f.source}</span>
+        <RealEstPill isReal={f.isReal} />
         <div className="flex-1" />
         <button
           className="text-slate-400 hover:text-slate-200"
@@ -116,6 +297,7 @@ function FindingCard({ f }: { f: Finding }) {
       </div>
       <div className="mt-2 text-[15px] font-semibold text-white">{f.title}</div>
       <div className="mt-1 text-sm text-slate-400">{f.description}</div>
+      <FindingDetail f={f} />
       {open ? (
         <div className="mt-3 rounded-lg border border-border bg-bg-terminal/60 p-3 text-xs text-slate-300">
           <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand-purple">
@@ -402,6 +584,35 @@ function SeverityPie({ findings }: { findings: Finding[] }) {
   );
 }
 
+function estimateBreachCostInr(ars: number): { low: number; high: number } {
+  // Baseline IBM 2024 avg breach cost ~ US$4.88M. We scale it with ARS and assume
+  // INR conversion (~₹8Cr mid for US$1M). Gives a demo-appropriate range band.
+  const factor = 0.3 + (ars / 100) * 2.1; // 0.3x at ARS=0, ~2.4x at ARS=100
+  const midCrore = 4 * factor; // crore (10M) — ballpark for an Indian SMB
+  return {
+    low: Math.round(midCrore * 0.55 * 10) / 10,
+    high: Math.round(midCrore * 1.85 * 10) / 10,
+  };
+}
+
+function FinancialBadge({ ars }: { ars: number }) {
+  const { low, high } = estimateBreachCostInr(ars);
+  return (
+    <Link
+      to="/reports?tab=financial"
+      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-brand-amber/40 bg-brand-amber/10 px-3 py-2 text-[11px] text-brand-amber transition-colors hover:border-brand-amber/70 hover:bg-brand-amber/20"
+      title="See full financial analysis"
+    >
+      <BadgeDollarSign className="h-3.5 w-3.5" />
+      <span className="font-semibold uppercase tracking-widest">Est. breach cost</span>
+      <span className="font-mono text-slate-100">
+        ₹{low}Cr – ₹{high}Cr
+      </span>
+      <span className="text-brand-amber/80">See full analysis →</span>
+    </Link>
+  );
+}
+
 export function ScanPage() {
   usePageTitle('MirrorTrap — Scan');
   const [params] = useSearchParams();
@@ -419,6 +630,7 @@ export function ScanPage() {
     'crt.sh': false,
     GitHub: false,
     DNS: false,
+    'Security Headers': false,
   });
   const [result, setResult] = useState<ScanResult | null>(null);
   const [term, setTerm] = useState<TermLine[]>([]);
@@ -432,7 +644,14 @@ export function ScanPage() {
       setPhase('scanning');
       setResult(null);
       setDossierOpen(false);
-      setProgress({ HaveIBeenPwned: false, Shodan: false, 'crt.sh': false, GitHub: false, DNS: false });
+      setProgress({
+        HaveIBeenPwned: false,
+        Shodan: false,
+        'crt.sh': false,
+        GitHub: false,
+        DNS: false,
+        'Security Headers': false,
+      });
       setTerm([
         { text: `$ mirrortrap scan ${d}`, tone: 'cmd' },
         { text: '> Initializing 5-source OSINT sweep...', tone: 'dim' },
@@ -674,9 +893,37 @@ export function ScanPage() {
 
       {result ? (
         <>
+          {result.real_sources_used && result.real_sources_used.length > 0 ? (
+            <div className="card flex flex-col gap-2 border border-brand-success/40 bg-brand-success/5 p-4 text-sm text-slate-200 animate-slide-up sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2 text-brand-success">
+                <Wifi className="h-4 w-4" />
+                <span className="font-semibold uppercase tracking-widest text-[11px]">
+                  Live data
+                </span>
+              </div>
+              <span className="text-slate-300">
+                Fetched from{' '}
+                <span className="font-mono text-slate-100">
+                  {result.real_sources_used.join(' · ')}
+                </span>
+                {result.scan_duration_s ? (
+                  <span className="text-slate-500">
+                    {' '}
+                    · completed in {result.scan_duration_s}s
+                  </span>
+                ) : null}
+                <span className="text-slate-500">
+                  {' '}
+                  · {result.findings.filter((f) => f.isReal).length} real,{' '}
+                  {result.findings.filter((f) => !f.isReal).length} estimated
+                </span>
+              </span>
+            </div>
+          ) : null}
           <div className="card grid grid-cols-1 gap-6 p-6 md:grid-cols-[auto_1fr]">
             <div className="flex flex-col items-center justify-center">
               <ScoreNumber target={result.ars_score} />
+              <FinancialBadge ars={result.ars_score} />
             </div>
             <div className="grid grid-cols-1 content-center gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border bg-bg-terminal/60 p-3">

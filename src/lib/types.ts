@@ -5,7 +5,8 @@ export type ScanSource =
   | 'Shodan'
   | 'crt.sh'
   | 'GitHub'
-  | 'DNS';
+  | 'DNS'
+  | 'Security Headers';
 
 export interface Finding {
   id: string;
@@ -14,6 +15,10 @@ export interface Finding {
   title: string;
   description: string;
   meaning: string;
+  /** true when the finding was produced by a real public API (not mock). */
+  isReal?: boolean;
+  /** Arbitrary raw payload from the source (subdomains, ports, CVEs, repos, ...). */
+  real_data?: unknown;
 }
 
 export interface ScanResult {
@@ -25,6 +30,10 @@ export interface ScanResult {
   estimated_time_to_exploit_hours: number;
   primary_entry_path: string;
   confidence: number;
+  /** Names of real-data sources that answered successfully. */
+  real_sources_used?: ScanSource[];
+  /** Wall-clock duration of the real OSINT sweep, in seconds. */
+  scan_duration_s?: number;
 }
 
 export type DecoyType =
