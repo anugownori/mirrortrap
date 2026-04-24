@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: #0d0b1a;
+  color: #e6e4f2;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  background-image:
+    radial-gradient(1200px 600px at 85% -10%, rgba(127, 119, 221, 0.14), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(239, 159, 39, 0.08), transparent 60%);
+  background-attachment: fixed;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-border bg-bg-surface;
+  }
+  .card-hover {
+    @apply transition-all hover:border-border-strong hover:shadow-glow;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-purple text-white hover:shadow-glow hover:brightness-110;
+  }
+  .btn-amber {
+    @apply btn bg-brand-amber text-[#1a1100] hover:shadow-glow-amber hover:brightness-110;
+  }
+  .btn-ghost {
+    @apply btn border border-border text-slate-200 hover:border-border-strong hover:bg-white/5;
+  }
+  .btn-danger {
+    @apply btn bg-brand-danger/90 text-[#2a0a0a] hover:shadow-glow-danger hover:brightness-110;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-white/5 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-wider text-slate-300;
+  }
+  .severity-critical {
+    @apply bg-brand-danger/15 text-brand-danger border-brand-danger/40;
+  }
+  .severity-high {
+    @apply bg-brand-amber/15 text-brand-amber border-brand-amber/40;
+  }
+  .severity-medium {
+    @apply bg-yellow-400/10 text-yellow-300 border-yellow-400/30;
+  }
+  .severity-low {
+    @apply bg-brand-success/15 text-brand-success border-brand-success/40;
+  }
+  .terminal {
+    @apply rounded-xl border border-border bg-bg-terminal p-4 font-mono text-[13px] leading-relaxed;
+  }
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(127, 119, 221, 0.05) 0%,
+      rgba(127, 119, 221, 0.18) 50%,
+      rgba(127, 119, 221, 0.05) 100%
+    );
+    background-size: 1400px 100%;
+    @apply animate-shimmer rounded-md;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #0a0814;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(127, 119, 221, 0.25);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 119, 221, 0.45);
+}
