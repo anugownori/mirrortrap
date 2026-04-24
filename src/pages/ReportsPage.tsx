@@ -17,6 +17,7 @@ import { useApp } from '@/lib/useApp';
 import { ArsBadge } from '@/components/ui/ArsBadge';
 import { arsColor, cn, formatDate } from '@/lib/utils';
 import type { ScanResult } from '@/lib/types';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 function downloadReport(s: ScanResult) {
@@ -60,10 +61,10 @@ ${s.findings
 
 function StatCard({ label, value, tone }: { label: string; value: string | number; tone: string }) {
   return (
-    <div className="card p-4">
+    <CardSpotlight className="p-4">
       <div className="text-[10px] uppercase tracking-widest text-slate-400">{label}</div>
       <div className={cn('mt-1 font-display text-3xl font-bold tabular-nums', tone)}>{value}</div>
-    </div>
+    </CardSpotlight>
   );
 }
 

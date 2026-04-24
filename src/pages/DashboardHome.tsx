@@ -19,6 +19,7 @@ import {
 import { useApp } from '@/lib/useApp';
 import { ArsGauge } from '@/components/ui/ArsGauge';
 import { SeverityBadge } from '@/components/ui/SeverityBadge';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { cn, formatDate } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
 
@@ -42,20 +43,20 @@ function StatCard({
     success: 'text-brand-success bg-brand-success/10 border-brand-success/40',
   } as const;
   return (
-    <div className="card p-4">
+    <CardSpotlight className="p-4">
       <div className="flex items-center gap-3">
         <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl border', map[tone])}>
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-widest text-white/40">{label}</div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, fontSize: 10, letterSpacing: '0.28em', textTransform: 'uppercase', color: 'rgba(245,240,255,0.4)' }}>{label}</div>
           <div className="mt-0.5 flex items-baseline gap-2">
-            <span className="font-display text-2xl font-bold text-white tabular-nums">{value}</span>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: 'clamp(1.8rem, 3vw, 2.8rem)', color: 'white', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
             {extra}
           </div>
         </div>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -174,13 +175,13 @@ function LiveTicker() {
     return () => clearInterval(int);
   }, []);
   return (
-    <div className="card p-4">
+    <CardSpotlight className="p-4">
       <div className="mb-2 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/40">
-          <Terminal className="h-3.5 w-3.5 text-brand-purple" /> Live Recon Activity (simulated)
+        <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em]" style={{ color: 'rgba(245,240,255,0.4)' }}>
+          <Terminal className="h-3.5 w-3.5" style={{ color: '#C084FC' }} /> Live Recon Activity (simulated)
         </div>
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-brand-success">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-success animate-pulse-dot" /> listening
+        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest" style={{ color: '#1D9E75' }}>
+          <span className="h-1.5 w-1.5 rounded-full animate-pulse-dot" style={{ background: '#1D9E75' }} /> listening
         </span>
       </div>
       <div className="terminal scanlines max-h-[168px] overflow-hidden">
@@ -197,7 +198,7 @@ function LiveTicker() {
           </div>
         ))}
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -314,7 +315,7 @@ export function DashboardHome() {
         <OnboardingCard hasScan={false} hasDecoy={activeDecoys > 0} hasAlert={alerts.length > 0} />
       ) : null}
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="section-label">
@@ -342,7 +343,7 @@ export function DashboardHome() {
             Scan <ArrowRight className="h-4 w-4" />
           </button>
         </form>
-      </div>
+      </CardSpotlight>
 
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard
@@ -385,9 +386,8 @@ export function DashboardHome() {
 
       <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
         <div className="space-y-4">
-          <div
-            className="card flex flex-col items-center justify-center p-6"
-            title="ARS = Attack Readiness Score — a 0-100 composite of your OSINT exposure. Lower is better."
+          <CardSpotlight
+            className="flex flex-col items-center justify-center p-6"
           >
             {latestScan ? (
               <>
@@ -426,13 +426,13 @@ export function DashboardHome() {
                 </Link>
               </div>
             )}
-          </div>
+          </CardSpotlight>
 
           <LiveTicker />
         </div>
 
         <div className="space-y-4">
-          <div className="card p-5">
+          <CardSpotlight className="p-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="text-xs uppercase tracking-widest text-white/40">
                 Findings summary (latest scan)
@@ -451,11 +451,11 @@ export function DashboardHome() {
                 </div>
               ))}
             </div>
-          </div>
+          </CardSpotlight>
 
-          <div className="card p-5">
+          <CardSpotlight className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-white/40">Recent activity</div>
+              <div className="text-xs uppercase tracking-widest" style={{ color: 'rgba(245,240,255,0.4)' }}>Recent activity</div>
               <Link to="/alerts" className="text-xs text-brand-purple hover:underline">
                 All alerts →
               </Link>
@@ -491,11 +491,11 @@ export function DashboardHome() {
                 ))}
               </ul>
             )}
-          </div>
+          </CardSpotlight>
 
-          <div className="card p-5">
+          <CardSpotlight className="p-5">
             <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-white/40">Scan history</div>
+              <div className="text-xs uppercase tracking-widest" style={{ color: 'rgba(245,240,255,0.4)' }}>Scan history</div>
               <Link to="/reports" className="text-xs text-brand-purple hover:underline">
                 All reports →
               </Link>
@@ -524,7 +524,7 @@ export function DashboardHome() {
                 </tbody>
               </table>
             )}
-          </div>
+          </CardSpotlight>
         </div>
       </div>
     </div>

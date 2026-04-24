@@ -4,6 +4,7 @@ import { useApp } from '@/lib/useApp';
 import { Logo } from '@/components/Logo';
 import { ArrowRight, KeyRound, Lock, Mail, ShieldCheck } from 'lucide-react';
 import { supabaseEnabled } from '@/lib/supabase';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
@@ -70,7 +71,8 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             ))}
           </div>
         </div>
-        <form onSubmit={onSubmit} className="card mx-auto w-full max-w-md p-6 shadow-glow">
+        <CardSpotlight className="mx-auto w-full max-w-md p-6 shadow-glow">
+        <form onSubmit={onSubmit}>
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">
               {mode === 'login' ? 'Sign in' : 'Create account'}
@@ -141,6 +143,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
             )}
           </div>
         </form>
+        </CardSpotlight>
       </div>
     </div>
   );

@@ -14,7 +14,6 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { Logo } from './Logo';
 import { useApp } from '@/lib/useApp';
 import { cn, formatDate } from '@/lib/utils';
 import { ArsBadge } from './ui/ArsBadge';
@@ -231,25 +230,70 @@ export function DashboardShell() {
     navigate(`/scan?domain=${encodeURIComponent(d)}&auto=1`);
   };
 
+  /* Scroll-aware pill shrink */
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ background: '#0D0814' }}>
+      {/* Interior page background */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: -1,
+          pointerEvents: 'none',
+          background: `
+            radial-gradient(ellipse 80% 35% at 50% 0%, rgba(192,132,252,0.055) 0%, transparent 60%),
+            linear-gradient(rgba(192,132,252,0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(192,132,252,0.025) 1px, transparent 1px)
+          `,
+          backgroundSize: '100% 100%, 52px 52px, 52px 52px',
+        }}
+      />
+      {/* Noise grain */}
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: -1,
+          pointerEvents: 'none',
+          opacity: 0.025,
+          backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+          backgroundSize: '256px 256px',
+        }}
+      />
       {/* Demo mode banner */}
       {demoMode ? (
         <DemoBanner key="demo-banner" onDismiss={() => setDemoMode(false)} />
       ) : null}
 
       {/* ── Floating pill top bar ──────────────────────── */}
-      <header className="pointer-events-none fixed left-0 right-0 top-0 z-40 flex justify-center px-4 pt-4">
+      <header className="pointer-events-none fixed left-0 right-0 top-0 z-40 flex justify-center px-4" style={{ paddingTop: 18 }}>
         <div
-          className="pointer-events-auto flex items-center gap-3 rounded-full px-4 py-2 shadow-nav-pill"
+          className="pointer-events-auto flex items-center gap-2 rounded-full"
           style={{
-            background: 'rgba(26,23,48,0.75)',
-            backdropFilter: 'blur(20px) saturate(180%)',
-            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-            border: '1px solid rgba(127,119,221,0.2)',
+            background: 'rgba(20,14,34,0.82)',
+            backdropFilter: scrolled ? 'blur(36px) saturate(180%)' : 'blur(28px) saturate(180%)',
+            WebkitBackdropFilter: scrolled ? 'blur(36px) saturate(180%)' : 'blur(28px) saturate(180%)',
+            border: '1px solid rgba(192,132,252,0.18)',
+            boxShadow: '0 0 0 1px rgba(192,132,252,0.07), 0 8px 32px rgba(0,0,0,0.55), 0 0 80px rgba(192,132,252,0.04)',
+            padding: '5px 6px',
+            transform: scrolled ? 'scale(0.96)' : 'scale(1)',
+            transition: 'all 400ms ease',
           }}
         >
-          <Logo />
+          {/* MT monogram */}
+          <div className="flex items-center gap-1.5 px-2" data-cursor="hover">
+            <svg width="16" height="16" viewBox="0 0 64 80" fill="none">
+              <path d="M32 2L4 18v24c0 20 28 34 28 34s28-14 28-34V18L32 2z" stroke="#C084FC" strokeWidth="2" fill="none" />
+            </svg>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 11, color: '#C084FC', marginRight: 4 }}>MT</span>
+          </div>
           <div className="hidden h-5 w-px bg-white/10 md:block" />
           <form onSubmit={onQuickScan} className="relative hidden max-w-[240px] flex-1 md:flex">
             <Radar className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
@@ -308,7 +352,7 @@ export function DashboardShell() {
 
       <div className="flex min-h-screen pt-16">
         {/* ── Sidebar ──────────────────────────────────── */}
-        <aside className="hidden w-56 shrink-0 md:block" style={{ borderRight: '1px solid rgba(127,119,221,0.08)' }}>
+        <aside className="hidden w-56 shrink-0 md:block" style={{ borderRight: '1px solid rgba(192,132,252,0.06)' }}>
           <nav className="sticky top-20 flex flex-col gap-1 p-3 pt-4">
             {NAV.map(({ to, label, icon: Icon, enterprise }) => {
               const gated = enterprise && !isEnterprise;
@@ -336,7 +380,9 @@ export function DashboardShell() {
                   <button
                     key={to}
                     onClick={() => setUpgradeOpen(true)}
-                    className="group flex items-center gap-2 rounded-full px-3 py-2 text-sm text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100"
+                    className="group flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors hover:bg-white/5"
+                    data-cursor="hover"
+                    style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 500, fontSize: '10.5px', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(245,240,255,0.4)' }}
                   >
                     {itemInner}
                   </button>
@@ -346,22 +392,32 @@ export function DashboardShell() {
                 <NavLink
                   key={to}
                   to={to}
+                  data-cursor="hover"
                   className={({ isActive }) =>
                     cn(
-                      'group flex items-center gap-2 rounded-full px-3 py-2 text-sm transition-colors',
+                      'group flex items-center gap-2 rounded-full px-3 py-2 transition-colors',
                       isActive
-                        ? 'bg-brand-purple/15 text-white'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-100',
+                        ? 'text-[#C084FC]'
+                        : 'hover:text-[rgba(245,240,255,0.85)]',
                     )
                   }
+                  style={({ isActive }) => ({
+                    fontFamily: "'Space Grotesk', sans-serif",
+                    fontWeight: 500,
+                    fontSize: '10.5px',
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase' as const,
+                    color: isActive ? '#C084FC' : 'rgba(245,240,255,0.4)',
+                    background: isActive ? 'rgba(192,132,252,0.14)' : 'transparent',
+                  })}
                 >
                   {itemInner}
                 </NavLink>
               );
             })}
             <div className="mt-auto pt-6">
-              <div className="card p-3 text-[11px] text-slate-400">
-                <div className="mb-1 flex items-center gap-1.5 text-brand-purple">
+              <div className="rounded-[14px] p-3 text-[11px]" style={{ background: 'rgba(20,14,34,0.55)', border: '1px solid rgba(192,132,252,0.1)', color: 'rgba(245,240,255,0.4)' }}>
+                <div className="mb-1 flex items-center gap-1.5" style={{ color: '#C084FC' }}>
                   <Activity className="h-3.5 w-3.5 animate-pulse-dot" />
                   <span className="font-semibold uppercase tracking-wider">Monitoring Active</span>
                 </div>

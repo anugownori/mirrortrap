@@ -24,6 +24,7 @@ import {
 } from 'recharts';
 import { Switch } from '@/components/ui/Switch';
 import { useApp } from '@/lib/useApp';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 import { cn, formatTime } from '@/lib/utils';
 import type { ThreatEvent, ThreatStatus } from '@/lib/types';
@@ -134,7 +135,7 @@ function ShieldStatusCard() {
       : 'Shield Offline — Activate to Begin Protection';
 
   return (
-    <div className="card p-6">
+    <CardSpotlight className="p-6">
       <div className="grid gap-6 md:grid-cols-[auto_1fr_auto]">
         {/* Shield icon */}
         <div className="flex flex-col items-center justify-center">
@@ -201,7 +202,7 @@ function ShieldStatusCard() {
           <StatPill tone="purple" icon={Lock} label="Protected Assets" value={12} />
         </div>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -305,7 +306,7 @@ function ThreatBoard() {
 function Countermeasures() {
   const { shieldActive } = useApp();
   return (
-    <div className="card p-5">
+    <CardSpotlight className="p-5">
       <div className="mb-1 text-xs uppercase tracking-widest text-brand-purple">
         Autonomous Countermeasures
       </div>
@@ -351,14 +352,14 @@ function Countermeasures() {
           );
         })}
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
 function ProtectionTimeline() {
   const data = useMemo(() => PROTECTION_TREND, []);
   return (
-    <div className="card p-5">
+    <CardSpotlight className="p-5">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <div className="text-xs uppercase tracking-widest text-brand-success">
@@ -462,7 +463,7 @@ function ProtectionTimeline() {
           </tbody>
         </table>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 

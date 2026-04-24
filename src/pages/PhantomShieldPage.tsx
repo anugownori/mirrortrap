@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/Switch';
 import { useApp } from '@/lib/useApp';
 import type { Decoy } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 const ICONS: Record<Decoy['id'], typeof ShieldHalf> = {
@@ -183,7 +184,7 @@ export function PhantomShieldPage() {
 
   return (
     <div className="space-y-6">
-      <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <CardSpotlight className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-amber">
             <ShieldHalf className="h-3.5 w-3.5" /> PhantomShield
@@ -199,7 +200,7 @@ export function PhantomShieldPage() {
         <button onClick={deployAll} className="btn-amber !px-5 !py-3">
           <Rocket className="h-4 w-4" /> DEPLOY ALL
         </button>
-      </div>
+      </CardSpotlight>
 
       {banner ? (
         <div className="card animate-fade-in border-brand-success/50 bg-brand-success/10 p-4 text-sm shadow-glow-success">
@@ -222,7 +223,7 @@ export function PhantomShieldPage() {
         ))}
       </div>
 
-      <div className="card p-5">
+      <CardSpotlight className="p-5">
         <div className="mb-2 flex items-center justify-between">
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
             <Terminal className="h-3.5 w-3.5" /> Live Monitoring
@@ -258,7 +259,7 @@ export function PhantomShieldPage() {
             ))
           )}
         </div>
-      </div>
+      </CardSpotlight>
 
       <LogsDialog d={open} onClose={() => setOpen(null)} />
     </div>

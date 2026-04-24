@@ -28,6 +28,7 @@ import {
 import { useApp } from '@/lib/useApp';
 import type { Alert } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
+import { CardSpotlight } from '@/components/ui/CardSpotlight';
 import { usePageTitle } from '@/lib/usePageTitle';
 
 function Classification({ a }: { a: Alert }) {
@@ -274,7 +275,7 @@ const HOT_IPS = [
 
 function RegionalThreatChart() {
   return (
-    <div className="card p-5">
+    <CardSpotlight className="p-5">
       <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
         <Globe2 className="h-3.5 w-3.5" /> Attacker Origin Map
       </div>
@@ -347,7 +348,7 @@ function RegionalThreatChart() {
           </ul>
         </div>
       </div>
-    </div>
+    </CardSpotlight>
   );
 }
 
@@ -469,7 +470,7 @@ export function AlertsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+      <CardSpotlight className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-danger">
             <AlertTriangle className="h-3.5 w-3.5" /> Alerts
@@ -516,7 +517,7 @@ export function AlertsPage() {
             )}
           </button>
         </div>
-      </div>
+      </CardSpotlight>
 
       <RegionalThreatChart />
 
