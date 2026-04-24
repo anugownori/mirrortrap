@@ -1,0 +1,9 @@
+{
+  "name": "mirror-trap",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
