@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Activity,
   Bell,
+  Eye,
   FileSearch,
   Keyboard,
   LayoutDashboard,
@@ -24,6 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, enterprise: false },
+  { to: '/hackers-eye', label: "Hacker's Eye", icon: Eye, enterprise: false },
   { to: '/scan', label: 'New Scan', icon: Radar, enterprise: false },
   { to: '/phantomshield', label: 'PhantomShield', icon: ShieldHalf, enterprise: false },
   { to: '/alerts', label: 'Alerts', icon: Bell, enterprise: false },

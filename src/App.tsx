@@ -7,6 +7,7 @@ import { DashboardShell } from '@/components/DashboardShell';
 import { ProtectedRoute } from '@/routes/ProtectedRoute';
 import { DashboardHome } from '@/pages/DashboardHome';
 import { ScanPage } from '@/pages/ScanPage';
+import { HackersViewPage } from '@/pages/HackersViewPage';
 import { PhantomShieldPage } from '@/pages/PhantomShieldPage';
 import { AlertsPage } from '@/pages/AlertsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
@@ -27,6 +28,7 @@ function App() {
             <Route element={<DashboardShell />}>
               <Route path="/dashboard" element={<DashboardHome />} />
               <Route path="/scan" element={<ScanPage />} />
+              <Route path="/hackers-eye" element={<HackersViewPage />} />
               <Route path="/phantomshield" element={<PhantomShieldPage />} />
               <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/protect" element={<ProtectPage />} />
