@@ -1,0 +1,57 @@
+[
+  {
+    "slug": "01_hook",
+    "start": 0.0,
+    "duration": 13.06
+  },
+  {
+    "slug": "02_brand",
+    "start": 13.06,
+    "duration": 11.61
+  },
+  {
+    "slug": "03_landing",
+    "start": 24.66,
+    "duration": 16.47
+  },
+  {
+    "slug": "04_domain",
+    "start": 41.13,
+    "duration": 27.32
+  },
+  {
+    "slug": "05_email",
+    "start": 68.45,
+    "duration": 26.38
+  },
+  {
+    "slug": "06_killchain",
+    "start": 94.83,
+    "duration": 18.53
+  },
+  {
+    "slug": "07_breach",
+    "start": 113.37,
+    "duration": 21.69
+  },
+  {
+    "slug": "08_darkweb",
+    "start": 135.06,
+    "duration": 21.43
+  },
+  {
+    "slug": "09_phantom",
+    "start": 156.49,
+    "duration": 18.79
+  },
+  {
+    "slug": "10_reports",
+    "start": 175.28,
+    "duration": 27.58
+  },
+  {
+    "slug": "11_closing",
+    "start": 202.85,
+    "duration": 21.69
+  }
+]

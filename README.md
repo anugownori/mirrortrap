@@ -9,6 +9,24 @@ reach real systems.
 
 ![MirrorTrap](./public/favicon.svg)
 
+---
+
+## 🎬 4-minute Walkthrough Video — **[`walkthrough/`](./walkthrough/)**
+
+> **Watch the full narrated platform walkthrough:**
+> **▶ [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4)** — every feature, end-to-end, with a Sarvam AI (`shubh`) voice-over.
+
+| | |
+|---|---|
+| 🎥 Video | [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4) — 224 s · 1600×1000 |
+| 🎙️ Voice-over | [`walkthrough/audio/voiceover.mp3`](./walkthrough/audio/voiceover.mp3) — Sarvam `bulbul:v3`, speaker `shubh` |
+| 📜 Script | [`docs/WALKTHROUGH_SCRIPT.md`](./docs/WALKTHROUGH_SCRIPT.md) — 11 time-coded segments |
+| 🤖 Recorder | [`walkthrough/walkthrough.py`](./walkthrough/walkthrough.py) — Playwright + ffmpeg pipeline |
+
+See **[`walkthrough/README.md`](./walkthrough/README.md)** for the full segment-by-segment breakdown and reproduce-it-yourself steps.
+
+---
+
 ## What's inside
 
 - **Landing page** with cinematic hero, live terminal animation, pricing.
