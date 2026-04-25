@@ -1,9 +1,11 @@
 # MirrorTrap — Walkthrough Video Script
 
+▶ **Watch the rendered walkthrough on YouTube:** https://youtu.be/_gOj0ZJIpw4
+
 Voice: **Sarvam AI · `shubh` · `bulbul:v3` · pace 1.0 · `en-IN`**
 Target runtime: ~4 minutes
-Audio render: `assets/walkthrough/voiceover.mp3`
-Final video: `assets/walkthrough/MirrorTrap_Walkthrough.mp4`
+Audio render: [`walkthrough/audio/voiceover.mp3`](../walkthrough/audio/voiceover.mp3)
+Final video: [`walkthrough/MirrorTrap_Walkthrough.mp4`](../walkthrough/MirrorTrap_Walkthrough.mp4) · YouTube → https://youtu.be/_gOj0ZJIpw4
 
 Timings below are estimates from the rendered audio; the recording is cut to the
 actual audio durations during muxing.
