@@ -4,7 +4,7 @@ A 4-minute narrated walkthrough of every feature in MirrorTrap, recorded against
 
 ## 🎥 Watch the video
 
-📺 **[`MirrorTrap_Walkthrough.mp4`](./MirrorTrap_Walkthrough.mp4)** — 224.6 s · 1600×1000 · H.264 + AAC · ~32 MB
+📺 **[`MirrorTrap_Walkthrough.mp4`](./MirrorTrap_Walkthrough.mp4)** — 224.6 s · 1600×1000 · H.264 + AAC · 9.7 MB · 1280×800
 
 > Click the file name above on GitHub and use the **View raw** / **Download** button to play it locally. (GitHub doesn't preview MP4s inline.)
 

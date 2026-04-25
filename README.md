@@ -13,12 +13,17 @@ reach real systems.
 
 ## 🎬 4-minute Walkthrough Video — **[`walkthrough/`](./walkthrough/)**
 
-> **Watch the full narrated platform walkthrough:**
-> **▶ [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4)** — every feature, end-to-end, with a Sarvam AI (`shubh`) voice-over.
+https://github.com/ganesh2317/Mirror-trap/raw/devin/1776873610-mirrortrap-initial/walkthrough/MirrorTrap_Walkthrough.mp4
+
+<p align="center">
+  <video src="https://github.com/ganesh2317/Mirror-trap/raw/devin/1776873610-mirrortrap-initial/walkthrough/MirrorTrap_Walkthrough.mp4" controls width="720"></video>
+</p>
+
+> ▶ Click the video above to play. If your viewer doesn't render it inline, open **[`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4)** — GitHub will load the video player on the blob page (file is now under 10 MB).
 
 | | |
 |---|---|
-| 🎥 Video | [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4) — 224 s · 1600×1000 |
+| 🎥 Video | [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4) — 224 s · 1280×800 · 9.7 MB |
 | 🎙️ Voice-over | [`walkthrough/audio/voiceover.mp3`](./walkthrough/audio/voiceover.mp3) — Sarvam `bulbul:v3`, speaker `shubh` |
 | 📜 Script | [`docs/WALKTHROUGH_SCRIPT.md`](./docs/WALKTHROUGH_SCRIPT.md) — 11 time-coded segments |
 | 🤖 Recorder | [`walkthrough/walkthrough.py`](./walkthrough/walkthrough.py) — Playwright + ffmpeg pipeline |
