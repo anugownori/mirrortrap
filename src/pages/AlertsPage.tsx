@@ -1,279 +1,38 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
-  ActivitySquare,
-  AlertTriangle,
-  Bot,
   ChevronDown,
-  Crosshair,
+  Copy,
   Download,
-  Fingerprint,
   Flag,
-  Gauge,
   Globe2,
   Loader2,
-  Repeat,
+  Play,
+  Search,
+  Shield,
   ShieldAlert,
   Trash2,
   Zap,
 } from 'lucide-react';
 import {
-  Bar,
-  BarChart,
-  Cell,
-  CartesianGrid,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
+  Bar, BarChart, Cell, CartesianGrid, Pie, PieChart,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { useApp } from '@/lib/useApp';
 import type { Alert } from '@/lib/types';
 import { cn, formatTime } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
+import { GlassCard } from '@/components/ui/GlassCard';
+import { Badge, severityVariant } from '@/components/ui/Badge';
+import { LivePulseDot } from '@/components/ui/LivePulseDot';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 
-function Classification({ a }: { a: Alert }) {
-  const isBot = a.classification.label === 'Automated Recon Bot';
-  return (
-    <div
-      className={cn(
-        'inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-[11px] font-bold uppercase tracking-widest',
-        isBot
-          ? 'border-brand-danger/50 bg-brand-danger/15 text-brand-danger'
-          : 'border-brand-danger/70 bg-brand-danger/25 text-red-200',
-      )}
-    >
-      {isBot ? <Bot className="h-3 w-3" /> : <ShieldAlert className="h-3 w-3" />}
-      {a.classification.label} — {a.classification.confidence}% confidence
-    </div>
-  );
-}
+type SeverityFilter = 'ALL' | 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+type TimeFilter = 'ALL' | 'UNREAD' | 'TODAY' | 'WEEK';
+type SortOrder = 'NEWEST' | 'SEVERITY' | 'CONFIDENCE';
 
-function AlertCard({
-  a,
-  isNewest,
-  isNewArrival,
-}: {
-  a: Alert;
-  isNewest: boolean;
-  isNewArrival: boolean;
-}) {
-  const { updateAlertStatus, pushToast } = useApp();
-  const [open, setOpen] = useState(isNewest);
-  const [showNewBadge, setShowNewBadge] = useState(isNewArrival);
-
-  useEffect(() => {
-    if (!isNewArrival) return;
-    const t = setTimeout(() => setShowNewBadge(false), 3000);
-    return () => clearTimeout(t);
-  }, [isNewArrival]);
-
-  const border =
-    a.severity === 'CRITICAL'
-      ? 'border-l-brand-danger'
-      : 'border-l-brand-amber';
-
-  const flaggedOrDismissed = a.status !== 'open';
-
-  return (
-    <div
-      className={cn(
-        'card border-l-4 p-5 transition-all animate-slide-in-top',
-        border,
-        isNewArrival && 'animate-red-flash',
-        flaggedOrDismissed && 'opacity-60',
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="font-mono text-[11px] text-slate-400">{formatTime(a.timestamp)}</span>
-        <span className="inline-flex items-center gap-1 rounded-md bg-brand-danger/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-danger">
-          <Zap className="h-3 w-3" /> Tripwire Fired
-        </span>
-        <span
-          className={cn(
-            'inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest',
-            a.severity === 'CRITICAL'
-              ? 'border-brand-danger/40 bg-brand-danger/10 text-brand-danger'
-              : 'border-brand-amber/40 bg-brand-amber/10 text-brand-amber',
-          )}
-        >
-          {a.severity}
-        </span>
-        {showNewBadge ? (
-          <span className="inline-flex items-center gap-1 rounded-md bg-brand-success/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-success animate-fade-in">
-            ● NEW
-          </span>
-        ) : null}
-        <div className="flex-1" />
-        {a.status === 'flagged' ? <span className="pill text-brand-amber">Flagged</span> : null}
-        {a.status === 'dismissed' ? <span className="pill">Archived</span> : null}
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-end gap-4">
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-slate-500">Source IP</div>
-          <div className="font-mono text-3xl font-bold text-white">{a.ip}</div>
-          <div className="mt-0.5 text-sm text-slate-300">
-            <span className="mr-1">{a.country_flag}</span>
-            {a.country} — <span className="text-slate-500">{a.network_tag}</span>
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-slate-500">User-Agent</div>
-          <span className="pill mt-1 font-mono normal-case tracking-normal">{a.user_agent}</span>
-        </div>
-        <div>
-          <div className="text-[10px] uppercase tracking-widest text-slate-500">Asset touched</div>
-          <div className="text-sm text-slate-200">
-            <span className="font-semibold text-white">{a.asset_used}</span>{' '}
-            <span className="text-slate-500">({a.asset_value})</span>
-          </div>
-        </div>
-      </div>
-
-      <button
-        className="mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-brand-purple hover:underline"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
-        Behavior & attack path
-      </button>
-
-      {open ? (
-        <div className="mt-3 space-y-3 animate-fade-in">
-          <div className="grid gap-2 md:grid-cols-3">
-            <div className="card bg-bg-terminal/60 p-3">
-              <div className="flex items-center gap-2 text-xs text-brand-amber">
-                <Gauge className="h-3.5 w-3.5" /> Request rate
-              </div>
-              <div className="mt-1 text-sm text-slate-200">{a.behavior.requests}</div>
-              <div className="mt-1 text-[10px] uppercase tracking-widest text-brand-danger">
-                AUTOMATED BOT
-              </div>
-            </div>
-            <div className="card bg-bg-terminal/60 p-3">
-              <div className="flex items-center gap-2 text-xs text-brand-amber">
-                <Repeat className="h-3.5 w-3.5" /> Probing pattern
-              </div>
-              <div className="mt-1 text-sm text-slate-200">{a.behavior.pattern}</div>
-              <div className="mt-1 text-[10px] uppercase tracking-widest text-brand-danger">
-                SCANNER PATTERN
-              </div>
-            </div>
-            <div className="card bg-bg-terminal/60 p-3">
-              <div className="flex items-center gap-2 text-xs text-brand-amber">
-                <Fingerprint className="h-3.5 w-3.5" /> Fingerprint
-              </div>
-              <div className="mt-1 text-sm text-slate-200">{a.behavior.fingerprint}</div>
-              <div className="mt-1 text-[10px] uppercase tracking-widest text-brand-danger">
-                SCRIPT, NOT HUMAN
-              </div>
-            </div>
-          </div>
-          <Classification a={a} />
-
-          <div className="card bg-bg-terminal/60 p-4">
-            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
-              <ActivitySquare className="h-3.5 w-3.5" /> Probable attack path
-            </div>
-            <ol className="space-y-1.5 font-mono text-[13px]">
-              {a.attack_path.map((p) => (
-                <li
-                  key={p.step}
-                  className={cn(
-                    'flex items-start gap-3',
-                    p.predicted && 'text-slate-500',
-                    p.triggered && 'text-brand-amber',
-                  )}
-                >
-                  <span className="w-10 shrink-0 text-slate-500">Step {p.step}:</span>
-                  <span className="flex-1">
-                    {p.label}
-                    {p.triggered ? (
-                      <span className="ml-2 rounded bg-brand-amber/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest text-brand-amber">
-                        ← triggered
-                      </span>
-                    ) : null}
-                    {p.predicted ? (
-                      <span className="ml-2 text-[10px] uppercase tracking-widest text-slate-500">
-                        (predicted)
-                      </span>
-                    ) : null}
-                  </span>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              disabled={a.status === 'flagged'}
-              onClick={() => {
-                updateAlertStatus(a.id, 'flagged');
-                pushToast({ title: `IP ${a.ip} flagged`, tone: 'amber' });
-              }}
-              className="btn-amber !py-1.5 !text-xs"
-            >
-              <Flag className="h-3.5 w-3.5" /> Flag IP
-            </button>
-            <button
-              onClick={() => {
-                const html = renderReport(a);
-                const w = window.open('', '_blank');
-                if (w) {
-                  w.document.write(html);
-                  w.document.close();
-                }
-              }}
-              className="btn-ghost !py-1.5 !text-xs"
-            >
-              Generate Report
-            </button>
-            <button
-              onClick={() => updateAlertStatus(a.id, 'dismissed')}
-              className="btn-ghost !py-1.5 !text-xs"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Dismiss
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function renderReport(a: Alert) {
-  return `<!doctype html><html><head><title>Threat report — ${a.ip}</title>
-<style>
-body{font-family:Inter,system-ui;background:#0D0B1A;color:#e6e4f2;padding:32px;max-width:720px;margin:0 auto}
-h1{font-weight:700}.box{border:1px solid rgba(127,119,221,0.3);border-radius:12px;padding:16px;margin:12px 0;background:#1A1730}
-code{background:#0A0814;padding:2px 6px;border-radius:4px;color:#EF9F27}
-</style></head><body>
-<h1>MirrorTrap Threat Report</h1>
-<div class="box"><b>Alert ID:</b> ${a.id}<br/><b>Timestamp:</b> ${a.timestamp}<br/><b>Severity:</b> ${a.severity}</div>
-<div class="box"><b>Source IP:</b> <code>${a.ip}</code><br/><b>Origin:</b> ${a.country_flag} ${a.country} — ${a.network_tag}<br/><b>User-Agent:</b> <code>${a.user_agent}</code></div>
-<div class="box"><b>Asset touched:</b> ${a.asset_used} (${a.asset_value})</div>
-<div class="box"><b>Behavior:</b><br/>${a.behavior.requests}<br/>${a.behavior.pattern}<br/>${a.behavior.fingerprint}</div>
-<div class="box"><b>Classification:</b> ${a.classification.label} — ${a.classification.confidence}% confidence</div>
-<div class="box"><b>Predicted attack path:</b><ol>${a.attack_path
-    .map((p) => `<li>${p.label}${p.triggered ? ' ← triggered' : ''}${p.predicted ? ' (predicted)' : ''}</li>`)
-    .join('')}</ol></div>
-</body></html>`;
-}
-
-const ATTACK_TYPE_COLORS = ['#F09595', '#EF9F27', '#7F77DD', '#FB923C', '#9F1239'];
-
-function inferAttackType(a: Alert): string {
-  const blob = `${a.asset_used} ${a.classification.label} ${a.behavior.pattern} ${a.behavior.requests}`.toLowerCase();
-  if (/login|password|credential|auth|sso/.test(blob)) return 'Credential Stuffing';
-  if (/port|scan|probe|nmap/.test(blob)) return 'Port Scanning';
-  if (/osint|recon|spider|enum/.test(blob)) return 'OSINT Scraping';
-  if (/sql|injection|union|or 1=1|'\s*or/.test(blob)) return 'SQL Injection';
-  if (/brute|force|dictionary|spray/.test(blob)) return 'Brute Force';
-  if (a.classification.label === 'Automated Recon Bot') return 'OSINT Scraping';
-  return 'Brute Force';
-}
+const SEVERITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+const ATTACK_TYPE_COLORS = ['#EF4444', '#F43F5E', '#6366F1', '#F59E0B', '#10B981'];
 
 function relativeTime(iso: string): string {
   const diff = Date.now() - +new Date(iso);
@@ -283,17 +42,163 @@ function relativeTime(iso: string): string {
   if (m < 60) return `${m}m ago`;
   const h = Math.round(m / 60);
   if (h < 24) return `${h}h ago`;
-  const d = Math.round(h / 24);
-  return `${d}d ago`;
+  return `${Math.round(h / 24)}d ago`;
 }
 
-function AttackOriginIntelligence({ alerts }: { alerts: Alert[] }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const int = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(int);
-  }, []);
+function inferAttackType(a: Alert): string {
+  const blob = `${a.asset_used} ${a.classification.label} ${a.behavior.pattern} ${a.behavior.requests}`.toLowerCase();
+  if (/login|password|credential|auth/.test(blob)) return 'Credential Stuffing';
+  if (/port|scan|probe/.test(blob)) return 'Port Scanning';
+  if (/osint|recon|spider/.test(blob)) return 'OSINT Scraping';
+  if (/sql|injection/.test(blob)) return 'SQL Injection';
+  return 'Brute Force';
+}
 
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      onClick={() => { void navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="text-text-muted hover:text-indigo-400 transition-colors"
+    >
+      <Copy className={cn('h-3.5 w-3.5', copied && 'text-emerald-400')} />
+    </button>
+  );
+}
+
+function AlertCard({ a, isNewArrival }: { a: Alert; isNewArrival: boolean }) {
+  const { updateAlertStatus, pushToast } = useApp();
+  const [open, setOpen] = useState(false);
+
+  const severityColor = {
+    CRITICAL: { border: 'border-l-red-500', bg: 'rgba(239,68,68,0.03)' },
+    HIGH: { border: 'border-l-rose-500', bg: 'rgba(244,63,94,0.03)' },
+    MEDIUM: { border: 'border-l-amber-500', bg: 'rgba(245,158,11,0.02)' },
+    LOW: { border: 'border-l-emerald-500', bg: 'rgba(16,185,129,0.02)' },
+  }[a.severity] ?? { border: 'border-l-indigo-500', bg: 'transparent' };
+
+  const confidence = a.classification.confidence;
+
+  return (
+    <div
+      className={cn(
+        'card border-l-4 p-5 transition-all',
+        severityColor.border,
+        isNewArrival && 'animate-slide-in-top',
+        a.status !== 'open' && 'opacity-60',
+      )}
+      style={{ background: isNewArrival ? severityColor.bg : undefined }}
+    >
+      <div className="flex flex-wrap items-start gap-4">
+        {/* Left col */}
+        <div className="flex flex-col gap-2 min-w-[120px]">
+          <Badge variant={severityVariant(a.severity)} pulse={a.severity === 'CRITICAL'}>
+            {a.severity}
+          </Badge>
+          <span className="text-xs text-text-muted font-semibold">{a.classification.label}</span>
+          <span className="text-xs text-text-muted">{confidence}% confident</span>
+        </div>
+
+        {/* Center col */}
+        <div className="flex-1 min-w-0">
+          <div className="text-base font-semibold text-text-primary">
+            {a.asset_used}
+          </div>
+          <div className="mt-1 text-sm text-text-muted">{a.behavior.pattern}</div>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="font-mono text-amber-400">{a.country_flag} {a.ip}</span>
+              <CopyButton text={a.ip} />
+            </div>
+            <span className="text-text-muted">·</span>
+            <span className="text-text-muted">{a.country} — {a.network_tag}</span>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-xs text-text-muted">
+            <span>{formatTime(a.timestamp)}</span>
+            <span>·</span>
+            <span>{relativeTime(a.timestamp)}</span>
+          </div>
+        </div>
+
+        {/* Right col — actions */}
+        <div className="flex flex-col gap-2 items-end">
+          {/* VIEW REPLAY — primary CTA */}
+          <Link
+            to={`/replay/${a.id}`}
+            className="btn-primary !py-2 !px-4 !text-sm"
+          >
+            <Play className="h-3.5 w-3.5" /> View Replay
+          </Link>
+          <button
+            onClick={() => updateAlertStatus(a.id, 'dismissed')}
+            className="btn-ghost !py-1.5 !text-xs"
+          >
+            Mark Read
+          </button>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="flex items-center gap-1 text-xs text-text-muted hover:text-indigo-400 transition-colors"
+          >
+            <ChevronDown className={cn('h-4 w-4 transition-transform', open && 'rotate-180')} />
+            {open ? 'Collapse' : 'Expand'}
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded details */}
+      {open && (
+        <div className="mt-4 space-y-3 border-t pt-4 animate-fade-in" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(5,8,15,0.5)' }}>
+              <div className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Request rate</div>
+              <div className="text-sm text-text-secondary">{a.behavior.requests}</div>
+            </div>
+            <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(5,8,15,0.5)' }}>
+              <div className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Probe pattern</div>
+              <div className="text-sm text-text-secondary">{a.behavior.pattern}</div>
+            </div>
+            <div className="rounded-xl border p-3" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(5,8,15,0.5)' }}>
+              <div className="text-[10px] uppercase tracking-widest text-text-muted mb-1">Fingerprint</div>
+              <div className="text-sm text-text-secondary">{a.behavior.fingerprint}</div>
+            </div>
+          </div>
+
+          {/* Attack path */}
+          <div className="rounded-xl border p-4" style={{ borderColor: 'rgba(255,255,255,0.06)', background: 'rgba(5,8,15,0.5)' }}>
+            <div className="mb-2 text-[10px] uppercase tracking-widest text-indigo-400">Probable attack path</div>
+            <ol className="space-y-1.5 font-mono text-sm">
+              {a.attack_path.map((p) => (
+                <li key={p.step} className={cn('flex items-start gap-3', p.predicted && 'text-text-muted', p.triggered && 'text-amber-400')}>
+                  <span className="w-12 shrink-0 text-text-muted">Step {p.step}:</span>
+                  <span className="flex-1">
+                    {p.label}
+                    {p.triggered && <span className="ml-2 rounded text-[10px] font-bold uppercase tracking-widest text-amber-400 bg-amber-500/15 px-1.5 py-0.5">← triggered</span>}
+                    {p.predicted && <span className="ml-2 text-[10px] uppercase tracking-widest text-text-muted">(predicted)</span>}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => { updateAlertStatus(a.id, 'flagged'); pushToast({ title: `IP ${a.ip} flagged`, tone: 'amber' }); }}
+              disabled={a.status === 'flagged'}
+              className="btn-amber !py-1.5 !text-xs"
+            >
+              <Flag className="h-3.5 w-3.5" /> Flag IP
+            </button>
+            <button onClick={() => updateAlertStatus(a.id, 'dismissed')} className="btn-ghost !py-1.5 !text-xs">
+              <Trash2 className="h-3.5 w-3.5" /> Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttackIntelligence({ alerts }: { alerts: Alert[] }) {
   const perCountry = useMemo(() => {
     const map = new Map<string, { flag: string; country: string; count: number }>();
     alerts.forEach((a) => {
@@ -305,483 +210,274 @@ function AttackOriginIntelligence({ alerts }: { alerts: Alert[] }) {
     return [...map.values()].sort((a, b) => b.count - a.count);
   }, [alerts]);
 
-  const topCountries = perCountry.slice(0, 8);
+  const topCountries = perCountry.slice(0, 6);
   const maxCount = Math.max(1, ...topCountries.map((c) => c.count));
   const chartData = topCountries.map((c) => ({
     label: `${c.flag} ${c.country}`,
     count: c.count,
-    tone:
-      c.count >= maxCount * 0.66
-        ? '#F09595'
-        : c.count >= maxCount * 0.33
-          ? '#EF9F27'
-          : '#1D9E75',
+    tone: c.count >= maxCount * 0.66 ? '#EF4444' : c.count >= maxCount * 0.33 ? '#F59E0B' : '#10B981',
   }));
-
-  const topOrigin = perCountry[0];
 
   const attackTypes = useMemo(() => {
     const map = new Map<string, number>();
-    alerts.forEach((a) => {
-      const t = inferAttackType(a);
-      map.set(t, (map.get(t) ?? 0) + 1);
-    });
+    alerts.forEach((a) => { const t = inferAttackType(a); map.set(t, (map.get(t) ?? 0) + 1); });
     const entries = [...map.entries()].map(([name, value]) => ({ name, value }));
-    return entries.length
-      ? entries
-      : [
-          { name: 'Credential Stuffing', value: 41 },
-          { name: 'Port Scanning', value: 28 },
-          { name: 'OSINT Scraping', value: 18 },
-          { name: 'SQL Injection', value: 8 },
-          { name: 'Brute Force', value: 5 },
-        ];
+    return entries.length ? entries : [
+      { name: 'Credential Stuffing', value: 41 },
+      { name: 'Port Scanning', value: 28 },
+      { name: 'OSINT Scraping', value: 18 },
+      { name: 'SQL Injection', value: 8 },
+      { name: 'Brute Force', value: 5 },
+    ];
   }, [alerts]);
 
-  const hotIps = useMemo(() => {
-    const byIp = new Map<
-      string,
-      { ip: string; flag: string; country: string; count: number; last: string }
-    >();
-    alerts.forEach((a) => {
-      const prev = byIp.get(a.ip);
-      if (!prev) {
-        byIp.set(a.ip, {
-          ip: a.ip,
-          flag: a.country_flag,
-          country: a.country,
-          count: 1,
-          last: a.timestamp,
-        });
-      } else {
-        prev.count += 1;
-        if (+new Date(a.timestamp) > +new Date(prev.last)) prev.last = a.timestamp;
-      }
-    });
-    return [...byIp.values()]
-      .sort((a, b) => +new Date(b.last) - +new Date(a.last))
-      .slice(0, 3);
-  }, [alerts]);
-
-  const lastUpdate = alerts[0]?.timestamp ?? new Date(now).toISOString();
-  const secondsAgo = Math.max(0, Math.round((now - +new Date(lastUpdate)) / 1000));
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string }> }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="glass rounded-xl px-3 py-2 text-xs">
+        <div className="text-text-muted">{payload[0].name}</div>
+        <div className="font-mono font-bold text-indigo-400">{payload[0].value}</div>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-4">
-      {/* 3 stat cards */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-danger">
-            <AlertTriangle className="h-3 w-3" /> Total attacks
+    <div className="grid gap-4 lg:grid-cols-2">
+      {/* Origin chart */}
+      {chartData.length > 0 && (
+        <GlassCard className="p-5">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
+            <Globe2 className="h-3.5 w-3.5 text-indigo-400" /> Attack Origin
           </div>
-          <AnimatedCounter
-            value={alerts.length}
-            flash={false}
-            className="mt-1 block font-mono text-3xl font-bold text-brand-danger tabular-nums"
-          />
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-purple">
-            <Globe2 className="h-3 w-3" /> Countries detected
-          </div>
-          <AnimatedCounter
-            value={perCountry.length}
-            flash={false}
-            className="mt-1 block font-mono text-3xl font-bold text-brand-purple tabular-nums"
-          />
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-amber">
-            <Flag className="h-3 w-3" /> Highest threat origin
-          </div>
-          <div className="mt-1 text-2xl font-bold text-brand-amber">
-            {topOrigin ? `${topOrigin.flag} ${topOrigin.country}` : '—'}
-          </div>
-          <div className="text-[11px] text-slate-500">
-            {topOrigin ? `${topOrigin.count} alert${topOrigin.count !== 1 ? 's' : ''}` : 'no data yet'}
-          </div>
-        </div>
-      </div>
-
-      {/* Attack origin chart */}
-      <div className="card p-5">
-        <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
-          <Globe2 className="h-3.5 w-3.5" /> Attack Origin Intelligence
-        </div>
-        <div className="text-sm text-slate-400">
-          Top {topCountries.length} countries by attack volume — live from alerts state
-        </div>
-
-        {chartData.length === 0 ? (
-          <div className="mt-6 rounded-lg border border-dashed border-border bg-bg-terminal/40 p-6 text-center text-sm text-slate-400">
-            No alerts yet. Trigger one with Simulate Attack.
-          </div>
-        ) : (
-          <div className="mt-4" style={{ width: '100%', height: Math.max(260, chartData.length * 36) }}>
+          <div style={{ width: '100%', height: 220 }}>
             <ResponsiveContainer>
-              <BarChart
-                data={chartData}
-                layout="vertical"
-                margin={{ top: 4, right: 24, bottom: 4, left: 12 }}
-              >
-                <CartesianGrid stroke="rgba(127,119,221,0.1)" strokeDasharray="4 4" />
-                <XAxis
-                  type="number"
-                  domain={[0, maxCount]}
-                  stroke="#7F77DD"
-                  tick={{ fill: '#8c8aa6', fontSize: 11 }}
-                  allowDecimals={false}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="label"
-                  stroke="#7F77DD"
-                  tick={{ fill: '#e6e4f2', fontSize: 12 }}
-                  width={140}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: '#0A0814',
-                    border: '1px solid rgba(127,119,221,0.3)',
-                    borderRadius: 10,
-                    color: '#e6e4f2',
-                    fontSize: 12,
-                  }}
-                  cursor={{ fill: 'rgba(127,119,221,0.08)' }}
-                  formatter={(v) => [`${v}`, 'Attacks']}
-                />
-                <Bar dataKey="count" radius={[0, 6, 6, 0]} isAnimationActive>
-                  {chartData.map((d, i) => (
-                    <Cell key={i} fill={d.tone} />
-                  ))}
+              <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 8 }}>
+                <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="4 4" />
+                <XAxis type="number" domain={[0, maxCount]} stroke="#475569" tick={{ fill: '#475569', fontSize: 10 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="label" stroke="#475569" tick={{ fill: '#94A3B8', fontSize: 11 }} width={120} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(99,102,241,0.05)' }} />
+                <Bar dataKey="count" radius={[0, 6, 6, 0]}>
+                  {chartData.map((d, i) => <Cell key={i} fill={d.tone} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
-        )}
-
-        <div className="mt-3 text-[11px] text-slate-500">
-          Last updated: {secondsAgo}s ago
-        </div>
-      </div>
+        </GlassCard>
+      )}
 
       {/* Attack type donut */}
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
-        <div className="card p-5">
-          <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
-            <ActivitySquare className="h-3.5 w-3.5" /> Attack type breakdown
-          </div>
-          <div className="text-sm text-slate-400">
-            Classified from alert payload signatures
-          </div>
-          <div className="mt-3 grid gap-4 md:grid-cols-[1fr_auto]">
-            <div style={{ width: '100%', height: 220 }}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={attackTypes}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={2}
-                  >
-                    {attackTypes.map((_, i) => (
-                      <Cell
-                        key={i}
-                        fill={ATTACK_TYPE_COLORS[i % ATTACK_TYPE_COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: '#0A0814',
-                      border: '1px solid rgba(127,119,221,0.3)',
-                      borderRadius: 10,
-                      color: '#e6e4f2',
-                      fontSize: 12,
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <ul className="space-y-1.5 text-[12px] text-slate-300">
-              {attackTypes.map((t, i) => (
-                <li key={t.name} className="flex items-center gap-2">
-                  <span
-                    className="inline-block h-2.5 w-2.5 rounded-sm"
-                    style={{ background: ATTACK_TYPE_COLORS[i % ATTACK_TYPE_COLORS.length] }}
-                  />
-                  <span className="flex-1">{t.name}</span>
-                  <span className="font-mono text-slate-200">{t.value}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+      <GlassCard className="p-5">
+        <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
+          <ShieldAlert className="h-3.5 w-3.5 text-red-400" /> Attack Types
         </div>
-
-        {/* Hot IPs */}
-        <div className="card p-5">
-          <div className="mb-1 inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-danger">
-            <Crosshair className="h-3.5 w-3.5" /> Hot IPs right now
+        <div className="flex items-center gap-4">
+          <div style={{ width: 160, height: 160 }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie data={attackTypes} dataKey="value" nameKey="name" innerRadius={45} outerRadius={72} paddingAngle={2} stroke="rgba(5,8,15,0.8)">
+                  {attackTypes.map((_, i) => <Cell key={i} fill={ATTACK_TYPE_COLORS[i % ATTACK_TYPE_COLORS.length]} />)}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-          <div className="text-sm text-slate-400">
-            3 most recent unique attacker addresses
-          </div>
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
-            {hotIps.length === 0
-              ? Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="rounded-lg border border-dashed border-border bg-bg-terminal/40 p-3 text-center text-[11px] text-slate-500"
-                  >
-                    No attackers yet
-                  </div>
-                ))
-              : hotIps.map((h) => (
-                  <div
-                    key={h.ip}
-                    className="rounded-lg border border-brand-danger/30 bg-brand-danger/5 p-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl leading-none">{h.flag}</span>
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate font-mono text-[12px] text-white">
-                          {h.ip}
-                        </div>
-                        <div className="truncate text-[11px] text-slate-400">
-                          {h.country}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">
-                        last seen {relativeTime(h.last)}
-                      </span>
-                      <span className="font-mono text-brand-danger">×{h.count}</span>
-                    </div>
-                  </div>
-                ))}
-          </div>
+          <ul className="space-y-1.5 text-xs text-text-secondary">
+            {attackTypes.map((t, i) => (
+              <li key={t.name} className="flex items-center gap-2">
+                <span className="inline-block h-2 w-2 rounded-sm flex-shrink-0" style={{ background: ATTACK_TYPE_COLORS[i % ATTACK_TYPE_COLORS.length] }} />
+                <span className="flex-1">{t.name}</span>
+                <span className="font-mono text-text-primary">{t.value}</span>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
+      </GlassCard>
     </div>
-  );
-}
-
-function AnimatedCounter({
-  value,
-  flash,
-  className,
-}: {
-  value: number;
-  flash: boolean;
-  className?: string;
-}) {
-  const [display, setDisplay] = useState(value);
-  useEffect(() => {
-    if (display === value) return;
-    const dir = value > display ? 1 : -1;
-    const int = setInterval(() => {
-      setDisplay((d) => {
-        if (d === value) {
-          clearInterval(int);
-          return d;
-        }
-        return d + dir;
-      });
-    }, 60);
-    return () => clearInterval(int);
-  }, [value, display]);
-  return (
-    <span
-      className={cn(
-        className,
-        flash && 'animate-red-flash rounded-md px-2',
-      )}
-    >
-      {display}
-    </span>
   );
 }
 
 export function AlertsPage() {
   usePageTitle('MirrorTrap — Alerts');
   const { alerts, simulateAttack } = useApp();
+
+  const [severity, setSeverity] = useState<SeverityFilter>('ALL');
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('NEWEST');
+  const [search, setSearch] = useState('');
   const [targeting, setTargeting] = useState(false);
-  const [counterFlash, setCounterFlash] = useState(false);
-  const [dotFast, setDotFast] = useState(false);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const prevCountRef = useRef(alerts.length);
-  const prevTopIdRef = useRef<string | null>(alerts[0]?.id ?? null);
 
-  const today = useMemo(() => {
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    return alerts.filter((a) => new Date(a.timestamp) >= start).length;
-  }, [alerts]);
-
-  const stats = useMemo(() => {
-    let bots = 0,
-      humans = 0,
-      flagged = 0;
-    const ips = new Set<string>();
-    alerts.forEach((a) => {
-      if (a.classification.label === 'Automated Recon Bot') bots += 1;
-      else humans += 1;
-      if (a.status === 'flagged') flagged += 1;
-      ips.add(a.ip);
-    });
-    return { bots, humans, flagged, uniqueIps: ips.size };
-  }, [alerts]);
-
-  // Detect new alert arrival: flash counter + NEW badge + dot speedup
+  // Detect new arrivals
   useEffect(() => {
     if (alerts.length > prevCountRef.current) {
       const topId = alerts[0]?.id;
-      if (topId && topId !== prevTopIdRef.current) {
-        setNewIds((prev) => {
-          const next = new Set(prev);
-          next.add(topId);
-          return next;
-        });
-        setCounterFlash(true);
-        setDotFast(true);
-        setTimeout(() => setCounterFlash(false), 900);
-        setTimeout(() => setDotFast(false), 2000);
-        setTimeout(() => {
-          setNewIds((prev) => {
-            const next = new Set(prev);
-            next.delete(topId);
-            return next;
-          });
-        }, 3200);
+      if (topId) {
+        setNewIds((prev) => { const next = new Set(prev); next.add(topId); return next; });
+        setTimeout(() => setNewIds((prev) => { const next = new Set(prev); next.delete(topId!); return next; }), 3200);
       }
     }
     prevCountRef.current = alerts.length;
-    prevTopIdRef.current = alerts[0]?.id ?? null;
   }, [alerts]);
+
+  const filtered = useMemo(() => {
+    let list = [...alerts];
+
+    if (severity !== 'ALL') list = list.filter((a) => a.severity === severity);
+
+    if (timeFilter === 'UNREAD') list = list.filter((a) => a.status === 'open');
+    else if (timeFilter === 'TODAY') {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      list = list.filter((a) => new Date(a.timestamp) >= start);
+    } else if (timeFilter === 'WEEK') {
+      const start = new Date(); start.setDate(start.getDate() - 7);
+      list = list.filter((a) => new Date(a.timestamp) >= start);
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((a) => a.ip.includes(q) || a.classification.label.toLowerCase().includes(q) || a.country.toLowerCase().includes(q));
+    }
+
+    if (sortOrder === 'NEWEST') list.sort((a, b) => +new Date(b.timestamp) - +new Date(a.timestamp));
+    else if (sortOrder === 'SEVERITY') list.sort((a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0));
+    else if (sortOrder === 'CONFIDENCE') list.sort((a, b) => b.classification.confidence - a.classification.confidence);
+
+    return list;
+  }, [alerts, severity, timeFilter, sortOrder, search]);
+
+  const unread = alerts.filter((a) => a.status === 'open').length;
+  const criticals = alerts.filter((a) => a.severity === 'CRITICAL').length;
+
+  const exportAll = () => {
+    const blob = new Blob([JSON.stringify(alerts, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const el = document.createElement('a');
+    el.href = url; el.download = `mirrortrap-alerts-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(el); el.click(); document.body.removeChild(el);
+    URL.revokeObjectURL(url);
+  };
 
   const onSimulate = () => {
     if (targeting) return;
     setTargeting(true);
-    setTimeout(() => {
-      simulateAttack();
-      setTargeting(false);
-    }, 1500);
-  };
-
-  const exportAll = () => {
-    const blob = new Blob([JSON.stringify(alerts, null, 2)], {
-      type: 'application/json',
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `mirrortrap-alerts-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    setTimeout(() => { simulateAttack(); setTargeting(false); }, 1500);
   };
 
   return (
-    <div className="space-y-6">
-      <div className="card flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-danger">
-            <AlertTriangle className="h-3.5 w-3.5" /> Alerts
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-text-primary" style={{ letterSpacing: '-0.02em' }}>Threat Alerts</h1>
+            <div className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-widest" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#F87171' }}>
+              <LivePulseDot color="red" size="sm" />
+              MONITORING
+            </div>
           </div>
-          <div className="mt-1 flex items-baseline gap-3">
-            <AnimatedCounter
-              value={today}
-              flash={counterFlash}
-              className="font-mono text-5xl font-bold text-brand-danger tabular-nums"
-            />
-            <span className="text-sm text-slate-400">tripwires fired today</span>
-          </div>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span
-              className={cn(
-                'h-2 w-2 rounded-full bg-brand-danger animate-pulse-dot',
-                dotFast && 'animate-pulse-ring',
-              )}
-            />
-            <span className="font-semibold uppercase tracking-widest text-brand-danger">
-              MONITORING ACTIVE
-            </span>
-            <span className="text-slate-500">· {alerts.length} total tracked</span>
+          <div className="mt-2 flex flex-wrap gap-4 text-sm text-text-muted">
+            <span><span className="font-mono font-bold text-red-400"><AnimatedCounter value={alerts.length} /></span> total</span>
+            <span><span className="font-mono font-bold text-amber-400">{unread}</span> unread</span>
+            <span><span className="font-mono font-bold text-red-400">{criticals}</span> critical</span>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={exportAll}
-            disabled={alerts.length === 0}
-            className="btn-ghost !py-2.5"
-            title="Download all alerts as JSON"
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={exportAll} disabled={alerts.length === 0} className="btn-ghost !py-2 !text-xs">
+            <Download className="h-4 w-4" /> Export
+          </button>
+          <button onClick={onSimulate} disabled={targeting} className="btn-danger !px-4 !py-2">
+            {targeting ? <><Loader2 className="h-4 w-4 animate-spin" /> TARGETING…</> : <><Zap className="h-4 w-4" /> Simulate Attack</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Attack intelligence */}
+      {alerts.length > 0 && <AttackIntelligence alerts={alerts} />}
+
+      {/* Filter bar */}
+      <GlassCard className="p-4">
+        <div className="flex flex-wrap gap-3">
+          {/* Severity filter */}
+          <div className="flex gap-1 rounded-xl border p-1" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+            {(['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as SeverityFilter[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSeverity(s)}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                  severity === s ? 'bg-indigo-500/20 text-indigo-400' : 'text-text-muted hover:text-text-secondary',
+                )}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {/* Time filter */}
+          <div className="flex gap-1 rounded-xl border p-1" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+            {(['ALL', 'UNREAD', 'TODAY', 'WEEK'] as TimeFilter[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTimeFilter(t)}
+                className={cn(
+                  'rounded-lg px-3 py-1.5 text-xs font-semibold transition-all',
+                  timeFilter === t ? 'bg-indigo-500/20 text-indigo-400' : 'text-text-muted hover:text-text-secondary',
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort */}
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            className="rounded-xl border px-3 py-1.5 text-xs font-semibold text-text-secondary appearance-none cursor-pointer"
+            style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(5,8,15,0.6)' }}
           >
-            <Download className="h-4 w-4" /> Export All
-          </button>
-          <button onClick={onSimulate} disabled={targeting} className="btn-danger !px-5 !py-3">
-            {targeting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> TARGETING…
-              </>
-            ) : (
-              <>
-                <Zap className="h-4 w-4" /> SIMULATE ATTACK
-              </>
-            )}
-          </button>
-        </div>
-      </div>
+            <option value="NEWEST">Newest</option>
+            <option value="SEVERITY">By Severity</option>
+            <option value="CONFIDENCE">By Confidence</option>
+          </select>
 
-      <AttackOriginIntelligence alerts={alerts} />
-
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-        <div className="card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-danger">
-            <Bot className="h-3 w-3" /> Automated Bots
-          </div>
-          <div className="mt-1 font-mono text-3xl text-brand-danger tabular-nums">
-            {stats.bots}
-          </div>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-red-300">
-            <ShieldAlert className="h-3 w-3" /> Human Attackers
-          </div>
-          <div className="mt-1 font-mono text-3xl text-red-300 tabular-nums">
-            {stats.humans}
-          </div>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-brand-amber">
-            <Flag className="h-3 w-3" /> IPs Flagged
-          </div>
-          <div className="mt-1 font-mono text-3xl text-brand-amber tabular-nums">
-            {stats.flagged} <span className="text-sm text-slate-500">/ {stats.uniqueIps}</span>
-          </div>
-        </div>
-      </div>
-
-      {alerts.length === 0 ? (
-        <div className="card p-10 text-center">
-          <ShieldAlert className="mx-auto h-10 w-10 text-slate-500" />
-          <div className="mt-3 text-lg font-semibold text-white">No tripwires fired yet</div>
-          <div className="mt-1 text-sm text-slate-400">
-            Deploy PhantomShield decoys, or click SIMULATE ATTACK to see what a real catch looks like.
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {alerts.map((a, i) => (
-            <AlertCard
-              key={a.id}
-              a={a}
-              isNewest={i === 0}
-              isNewArrival={newIds.has(a.id)}
+          {/* Search */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search IP or classification..."
+              className="input-dark !py-1.5 !pl-9 w-full text-xs"
             />
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Alert list */}
+      {filtered.length === 0 ? (
+        <GlassCard className="p-12 text-center">
+          <Shield className="mx-auto h-12 w-12 text-text-muted opacity-40 mb-4" />
+          <div className="text-lg font-semibold text-text-primary">
+            {alerts.length === 0 ? 'No alerts yet' : 'No alerts match your filters'}
+          </div>
+          <div className="mt-2 text-sm text-text-muted">
+            {alerts.length === 0
+              ? 'Your traps are deployed and waiting. Any attacker activity will appear here instantly.'
+              : 'Try adjusting the filters above.'}
+          </div>
+          {alerts.length === 0 && (
+            <Link to="/phantomshield" className="mt-4 btn-primary inline-flex">
+              Deploy a Trap
+            </Link>
+          )}
+        </GlassCard>
+      ) : (
+        <div className="space-y-3">
+          <div className="text-xs text-text-muted">Showing {filtered.length} of {alerts.length} alerts</div>
+          {filtered.map((a) => (
+            <AlertCard key={a.id} a={a} isNewArrival={newIds.has(a.id)} />
           ))}
         </div>
       )}

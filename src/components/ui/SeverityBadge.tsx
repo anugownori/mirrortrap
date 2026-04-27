@@ -1,23 +1,23 @@
-import { cn } from '@/lib/utils';
+import { Badge, severityVariant } from './Badge';
 import type { Severity } from '@/lib/types';
 
-const classes: Record<Severity, string> = {
-  CRITICAL: 'severity-critical',
-  HIGH: 'severity-high',
-  MEDIUM: 'severity-medium',
-  LOW: 'severity-low',
-};
+// Re-export from Badge for new code
+export { Badge, severityVariant } from './Badge';
+export type { BadgeVariant } from './Badge';
 
-export function SeverityBadge({ severity, className }: { severity: Severity; className?: string }) {
+interface SeverityBadgeProps {
+  severity: Severity | string;
+  className?: string;
+}
+
+/**
+ * Legacy SeverityBadge — accepts `severity` string prop directly.
+ * New code should use `<Badge variant={severityVariant(s)}>` instead.
+ */
+export function SeverityBadge({ severity, className }: SeverityBadgeProps) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold tracking-widest',
-        classes[severity],
-        className,
-      )}
-    >
+    <Badge variant={severityVariant(severity)} className={className}>
       {severity}
-    </span>
+    </Badge>
   );
 }

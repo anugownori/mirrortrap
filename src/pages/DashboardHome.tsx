@@ -1,297 +1,266 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Bell,
-  CheckCircle2,
-  Circle,
   Globe,
   Radar,
+  Shield,
   ShieldAlert,
   ShieldCheck,
   ShieldHalf,
-  Siren,
-  Terminal,
   TrendingDown,
   TrendingUp,
   Zap,
+  Clock,
+  Target,
+  Activity,
 } from 'lucide-react';
 import { useApp } from '@/lib/useApp';
-import { ArsGauge } from '@/components/ui/ArsGauge';
-import { SeverityBadge } from '@/components/ui/SeverityBadge';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { LivePulseDot } from '@/components/ui/LivePulseDot';
+import { ThreatActivityGraph } from '@/components/charts/ThreatActivityGraph';
+import { AttackVectorRadar } from '@/components/charts/AttackVectorRadar';
+import { Badge, severityVariant } from '@/components/ui/Badge';
+import { GlassCard } from '@/components/ui/GlassCard';
 import { cn, formatDate } from '@/lib/utils';
 import { usePageTitle } from '@/lib/usePageTitle';
+import { arsScoreColor } from '@/lib/design-system';
 
 function StatCard({
   label,
-  value,
-  tone,
-  icon: Icon,
-  extra,
+  children,
+  glow,
+  className,
 }: {
   label: string;
-  value: string | number;
-  tone: 'purple' | 'amber' | 'danger' | 'success';
-  icon: typeof Radar;
-  extra?: React.ReactNode;
+  children: React.ReactNode;
+  glow?: 'purple' | 'cyan' | 'red' | 'none';
+  className?: string;
 }) {
-  const map = {
-    purple: 'text-brand-purple bg-brand-purple/10 border-brand-purple/40',
-    amber: 'text-brand-amber bg-brand-amber/10 border-brand-amber/40',
-    danger: 'text-brand-danger bg-brand-danger/10 border-brand-danger/40',
-    success: 'text-brand-success bg-brand-success/10 border-brand-success/40',
-  } as const;
   return (
-    <div className="card p-4">
-      <div className="flex items-center gap-3">
-        <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg border', map[tone])}>
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[10px] uppercase tracking-widest text-slate-400">{label}</div>
-          <div className="mt-0.5 flex items-baseline gap-2">
-            <span className="font-mono text-2xl text-white tabular-nums">{value}</span>
-            {extra}
-          </div>
-        </div>
+    <GlassCard glow={glow ?? 'none'} hover className={cn('p-5', className)}>
+      <div className="mb-1 text-xs font-semibold uppercase tracking-widest text-text-muted">
+        {label}
       </div>
-    </div>
+      {children}
+    </GlassCard>
   );
 }
 
-function pad(n: number) {
-  return n.toString().padStart(2, '0');
-}
-
-function BreachCountdown({ hours }: { hours: number }) {
-  const [remaining, setRemaining] = useState<number>(() =>
-    Math.max(1, Math.round(hours * 3600)),
-  );
-  useEffect(() => {
-    const int = setInterval(() => {
-      setRemaining((r) => (r <= 0 ? 0 : r - 1));
-    }, 1000);
-    return () => clearInterval(int);
-  }, []);
-  const expired = remaining <= 0;
-  const hh = Math.floor(remaining / 3600);
-  const mm = Math.floor((remaining % 3600) / 60);
-  const ss = remaining % 60;
+function ARSStatCard({ score, delta }: { score: number | null; delta: number | null }) {
+  const navigate = useNavigate();
+  if (score === null) {
+    return (
+      <StatCard label="ARS Score">
+        <div className="mt-3 text-center">
+          <div className="text-sm text-text-muted">No scan yet</div>
+          <button onClick={() => navigate('/scan')} className="mt-3 btn-primary !text-xs !py-1.5">
+            Run first scan
+          </button>
+        </div>
+      </StatCard>
+    );
+  }
+  const color = arsScoreColor(score);
   return (
-    <div
-      className={cn(
-        'card relative overflow-hidden border-brand-danger/50 p-4',
-        expired ? 'animate-danger-flash' : '',
+    <StatCard label="Attack Readiness Score" glow={score >= 70 ? 'red' : score >= 40 ? 'none' : 'none'}>
+      <div className="flex items-end gap-3 mt-1">
+        <span className="font-mono text-5xl font-bold tabular-nums leading-none" style={{ color }}>
+          <AnimatedCounter value={score} duration={1200} />
+        </span>
+        <span className="text-xl text-text-muted mb-1">/100</span>
+      </div>
+      {delta !== null && (
+        <div className={cn(
+          'mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold',
+          delta > 0 ? 'bg-red-500/15 text-red-400' : delta < 0 ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-text-muted',
+        )}>
+          {delta > 0 ? <TrendingUp className="h-3 w-3" /> : delta < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+          {delta > 0 ? '+' : ''}{delta} vs last scan
+        </div>
       )}
-      style={{
-        backgroundImage:
-          'linear-gradient(135deg, rgba(240,149,149,0.12), rgba(240,149,149,0.02))',
-      }}
-    >
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="relative mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg bg-brand-danger/15 text-brand-danger animate-pulse-ring">
-            <Siren className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-brand-danger">
-              {expired ? 'CRITICAL — WINDOW EXPIRED — DEPLOY PHANTOMSHIELD NOW' : '⚡ BREACH WINDOW OPEN'}
-            </div>
-            <div className="mt-0.5 text-sm text-slate-200">
-              {expired ? (
-                <>Estimated exploitation window has passed. Your exposure is untreated.</>
-              ) : (
-                <>
-                  Estimated time to exploit:{' '}
-                  <span className="font-mono text-brand-amber">{hours}h</span> — based on your
-                  current exposure.
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg border border-brand-danger/40 bg-black/40 px-3 py-2 font-mono text-2xl tabular-nums text-brand-danger">
-            {pad(hh)}:{pad(mm)}:{pad(ss)}
-          </div>
-          <Link to="/phantomshield" className="btn-danger !py-2.5">
-            <ShieldHalf className="h-4 w-4" /> Deploy Now
-          </Link>
-        </div>
-      </div>
-    </div>
+      <Link to="/scan" className="mt-3 flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+        Rescan <ArrowRight className="h-3 w-3" />
+      </Link>
+    </StatCard>
   );
 }
 
-const TICKER_MESSAGES = [
-  'Shodan bot probed port 3306 on your IP range',
-  '185.220.101.47 queried your subdomain dev.targetcompany.com',
-  'HaveIBeenPwned: your email seen in paste site',
-  'GitHub crawler indexed your repo history',
-  'Censys scan matched your TLS fingerprint',
-  'Anonymous proxy fetched your job-postings page',
-];
-
-interface TickerLine {
-  id: string;
-  text: string;
-  ts: string;
-}
-
-function randomTs(baseTime: Date) {
-  const jitter = new Date(baseTime);
-  jitter.setHours(jitter.getHours() + Math.floor(Math.random() * 3));
-  jitter.setMinutes(Math.floor(Math.random() * 60));
-  jitter.setSeconds(Math.floor(Math.random() * 60));
-  return `${pad(jitter.getHours())}:${pad(jitter.getMinutes())}:${pad(jitter.getSeconds())}`;
-}
-
-function LiveTicker() {
-  const [lines, setLines] = useState<TickerLine[]>(() => {
-    const now = new Date();
-    return [0, 1, 2].map((i) => ({
-      id: `seed_${i}`,
-      text: TICKER_MESSAGES[i],
-      ts: randomTs(now),
-    }));
-  });
-  const idxRef = useRef(3);
-  useEffect(() => {
-    const int = setInterval(() => {
-      const text = TICKER_MESSAGES[idxRef.current % TICKER_MESSAGES.length];
-      idxRef.current += 1;
-      setLines((prev) =>
-        [
-          {
-            id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-            text,
-            ts: randomTs(new Date()),
-          },
-          ...prev,
-        ].slice(0, 6),
-      );
-    }, 4000);
-    return () => clearInterval(int);
-  }, []);
+function ActiveTrapsCard({ active, total, triggeredThisWeek }: { active: number; total: number; triggeredThisWeek: number }) {
   return (
-    <div className="card p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-slate-400">
-          <Terminal className="h-3.5 w-3.5 text-brand-purple" /> Live Recon Activity (simulated)
-        </div>
-        <span className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest text-brand-success">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-success animate-pulse-dot" /> listening
+    <StatCard label="Active Traps" glow="cyan">
+      <div className="flex items-baseline gap-2 mt-1">
+        <span className="font-mono text-5xl font-bold tabular-nums leading-none text-cyan-400">
+          <AnimatedCounter value={active} duration={800} />
         </span>
+        <LivePulseDot color="green" size="md" />
       </div>
-      <div className="terminal max-h-[168px] overflow-hidden">
-        {lines.map((l, i) => (
-          <div
-            key={l.id}
-            className={cn(
-              'flex gap-2 leading-relaxed',
-              i === 0 ? 'text-brand-amber animate-slide-up' : 'text-slate-400',
-            )}
-          >
-            <span className="text-slate-500">[{l.ts}]</span>
-            <span className="flex-1">{l.text}</span>
-          </div>
-        ))}
+      <div className="mt-1 text-sm text-text-muted">of {total} deployed</div>
+      <div className="mt-2 text-xs text-text-muted">
+        <span className="text-amber-400 font-semibold">{triggeredThisWeek}</span> triggered this week
       </div>
-    </div>
+    </StatCard>
   );
 }
 
-function OnboardingCard({
-  hasScan,
-  hasDecoy,
-  hasAlert,
-}: {
-  hasScan: boolean;
-  hasDecoy: boolean;
-  hasAlert: boolean;
-}) {
-  const steps = [
-    { key: 's1', label: 'Run your first scan', to: '/scan', done: hasScan },
-    { key: 's2', label: 'Deploy PhantomShield', to: '/phantomshield', done: hasDecoy },
-    { key: 's3', label: 'Monitor your alerts', to: '/alerts', done: hasAlert },
-  ] as const;
-  const completed = steps.filter((s) => s.done).length;
-  if (completed === steps.length) return null;
+function ThreatsInterceptedCard({ count, criticalCount }: { count: number; criticalCount: number }) {
   return (
-    <div className="card p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
-          <Sparkle /> Get started with MirrorTrap
-        </div>
-        <span className="text-[11px] text-slate-400">
-          {completed}/{steps.length} complete
+    <StatCard label="Threats Intercepted" glow={count > 5 ? 'red' : 'none'}>
+      <div className="flex items-baseline gap-2 mt-1">
+        <span className="font-mono text-5xl font-bold tabular-nums leading-none text-red-400">
+          <AnimatedCounter value={count} duration={1000} />
         </span>
+        {count >= 5 && <TrendingUp className="h-4 w-4 text-red-400" />}
       </div>
-      <div className="grid gap-3 md:grid-cols-3">
-        {steps.map((s, i) => (
-          <Link
-            key={s.key}
-            to={s.to}
-            className={cn(
-              'group flex items-start gap-3 rounded-lg border p-4 transition-all',
-              s.done
-                ? 'border-brand-success/40 bg-brand-success/5'
-                : 'border-border bg-bg-terminal/50 hover:border-brand-purple/60 hover:bg-brand-purple/5',
-            )}
-          >
-            {s.done ? (
-              <CheckCircle2 className="mt-0.5 h-5 w-5 text-brand-success" />
-            ) : (
-              <Circle className="mt-0.5 h-5 w-5 text-slate-500 group-hover:text-brand-purple" />
-            )}
-            <div>
-              <div className="text-[10px] uppercase tracking-widest text-slate-400">
-                Step {i + 1}
-              </div>
-              <div
-                className={cn(
-                  'mt-0.5 text-sm font-semibold',
-                  s.done ? 'text-slate-400 line-through' : 'text-white',
-                )}
-              >
-                {s.label}
-              </div>
-            </div>
-          </Link>
-        ))}
+      <div className="mt-2 flex items-center gap-2">
+        <Badge variant="critical" className="text-[10px]">{criticalCount} critical</Badge>
       </div>
+    </StatCard>
+  );
+}
+
+function MTTDCard({ minutes, percentileFaster }: { minutes: number; percentileFaster: number }) {
+  return (
+    <StatCard label="Mean Time to Detect" glow="none">
+      <div className="flex items-baseline gap-2 mt-1">
+        <span className="font-mono text-4xl font-bold tabular-nums leading-none text-emerald-400">
+          {minutes.toFixed(1)}
+        </span>
+        <span className="text-lg text-text-muted">min</span>
+      </div>
+      <div className="mt-1 text-xs text-text-muted">Industry avg: <span className="text-slate-300">24 min</span></div>
+      <div className="mt-2">
+        <Badge variant="low" className="text-[10px]">{percentileFaster}% faster</Badge>
+      </div>
+    </StatCard>
+  );
+}
+
+function RecentAlertsFeed({ alerts }: { alerts: ReturnType<typeof useApp>['alerts'] }) {
+  if (alerts.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-40 text-center">
+        <Shield className="h-10 w-10 text-text-muted mb-3 opacity-40" />
+        <div className="text-sm text-text-muted">No alerts yet</div>
+        <div className="text-xs text-text-muted mt-1">Deploy traps to start catching reconnaissance</div>
+      </div>
+    );
+  }
+  return (
+    <ul className="space-y-2">
+      {alerts.slice(0, 5).map((a) => (
+        <li key={a.id} className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-white/3" style={{ background: 'rgba(255,255,255,0.03)' }}>
+          <Zap className={cn('h-4 w-4 shrink-0', a.severity === 'CRITICAL' ? 'text-red-400' : 'text-amber-400')} />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm font-medium text-text-primary">{a.asset_used}</div>
+            <div className="truncate text-xs text-text-muted font-mono">{a.ip} · {formatDate(a.timestamp)}</div>
+          </div>
+          <Badge variant={severityVariant(a.severity)} className="flex-shrink-0 text-[10px]">{a.severity}</Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function QuickScanCard({ recentScans }: { recentScans: ReturnType<typeof useApp>['scans'] }) {
+  const navigate = useNavigate();
+  const [domain, setDomain] = useState('');
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const d = domain.trim();
+    if (!d) return;
+    navigate(`/scan?domain=${encodeURIComponent(d)}&auto=1`);
+  };
+  return (
+    <div>
+      <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
+        <Radar className="h-3.5 w-3.5 text-indigo-400" /> Quick Scan
+      </div>
+      <form onSubmit={onSubmit} className="flex gap-2">
+        <div className="relative flex-1">
+          <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <input
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            placeholder="company.com"
+            className="input-dark !pl-9"
+          />
+        </div>
+        <button type="submit" className="btn-primary !px-4">
+          <ArrowRight className="h-4 w-4" />
+        </button>
+      </form>
+      {recentScans.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {[...recentScans].reverse().slice(0, 3).map((s) => (
+            <Link
+              key={s.id}
+              to="/scan"
+              className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs hover:bg-white/4 transition-colors"
+            >
+              <span className="font-mono text-text-secondary truncate">{s.domain}</span>
+              <span className="font-mono text-amber-400 ml-2 flex-shrink-0">ARS {s.ars_score}</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function Sparkle() {
+function TrapPerformanceCard({ decoys }: { decoys: ReturnType<typeof useApp>['decoys'] }) {
+  const active = decoys.filter((d) => d.active);
   return (
-    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8z" />
-    </svg>
+    <div>
+      <div className="mb-3 text-xs font-semibold uppercase tracking-widest text-text-muted flex items-center gap-2">
+        <Target className="h-3.5 w-3.5 text-indigo-400" /> Trap Performance
+      </div>
+      {active.length === 0 ? (
+        <div className="text-sm text-text-muted">
+          No active traps. <Link to="/phantomshield" className="text-indigo-400 hover:underline">Deploy one →</Link>
+        </div>
+      ) : (
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-text-muted">
+              <th className="text-left pb-2 font-semibold">Trap</th>
+              <th className="text-right pb-2 font-semibold">Hits</th>
+              <th className="text-right pb-2 font-semibold">Status</th>
+            </tr>
+          </thead>
+          <tbody className="space-y-1">
+            {active.slice(0, 3).map((d) => (
+              <tr key={d.id}>
+                <td className="py-1 text-text-secondary truncate max-w-[100px]">{d.name}</td>
+                <td className="py-1 text-right font-mono text-amber-400">{d.logs.length}</td>
+                <td className="py-1 text-right">
+                  <Badge variant="active" className="text-[10px] !py-0">LIVE</Badge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <Link to="/phantomshield" className="mt-3 flex items-center gap-1 text-xs text-indigo-400 hover:underline">
+        View all traps <ArrowRight className="h-3 w-3" />
+      </Link>
+    </div>
   );
 }
 
 export function DashboardHome() {
   usePageTitle('MirrorTrap — Dashboard');
-  const { scans, latestScan, alerts, decoys, demoMode } = useApp();
-  const navigate = useNavigate();
-  const [quickDomain, setQuickDomain] = useState('');
+  const { scans, latestScan, alerts, decoys, demoMode, user } = useApp();
 
   const activeDecoys = decoys.filter((d) => d.active).length;
-  const critical = latestScan?.findings.filter((f) => f.severity === 'CRITICAL').length ?? 0;
+  const criticalAlerts = alerts.filter((a) => a.severity === 'CRITICAL').length;
 
-  const today = useMemo(() => {
+  const thisWeekAlerts = useMemo(() => {
     const start = new Date();
-    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 7);
     return alerts.filter((a) => new Date(a.timestamp) >= start).length;
   }, [alerts]);
-
-  const findingCounts = useMemo(() => {
-    const c = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 } as Record<string, number>;
-    (latestScan?.findings ?? []).forEach((f) => (c[f.severity] += 1));
-    return c;
-  }, [latestScan]);
 
   const arsDelta = useMemo(() => {
     if (scans.length < 2) return null;
@@ -299,234 +268,125 @@ export function DashboardHome() {
     return sorted[sorted.length - 1].ars_score - sorted[sorted.length - 2].ars_score;
   }, [scans]);
 
-  const onQuickScan = (e: React.FormEvent) => {
-    e.preventDefault();
-    const d = quickDomain.trim();
-    if (!d) return;
-    navigate(`/scan?domain=${encodeURIComponent(d)}&auto=1`);
-  };
-
-  const showBreachBanner = !!latestScan && latestScan.ars_score >= 60;
+  const firstName = user?.email?.split('@')[0] ?? 'Analyst';
+  const lastScanAge = latestScan
+    ? formatDate(latestScan.timestamp)
+    : null;
 
   return (
-    <div className="space-y-6">
-      {scans.length === 0 && !demoMode ? (
-        <OnboardingCard hasScan={false} hasDecoy={activeDecoys > 0} hasAlert={alerts.length > 0} />
-      ) : null}
-
-      <div className="card p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-brand-purple">
-              <Radar className="h-3.5 w-3.5" /> Quick scan
+    <div className="space-y-6 animate-fade-in">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary" style={{ letterSpacing: '-0.02em' }}>
+            Welcome back, <span className="text-indigo-400">{firstName}</span>
+          </h1>
+          {lastScanAge && (
+            <div className="mt-0.5 flex items-center gap-1.5 text-sm text-text-muted">
+              <Clock className="h-3.5 w-3.5" />
+              Last scan: {lastScanAge}
             </div>
-            <h1 className="mt-1 text-2xl font-bold text-white">Run a scan in under a minute.</h1>
-            <p className="mt-1 text-sm text-slate-400">
-              {demoMode
-                ? 'Demo Mode is ON — preloaded targetcompany.com data is available across the app.'
-                : 'Type any domain and hit Enter. We\u2019ll trace it the way an attacker would.'}
-            </p>
-          </div>
+          )}
         </div>
-        <form onSubmit={onQuickScan} className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <div className="relative flex-1">
-            <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
-            <input
-              value={quickDomain}
-              onChange={(e) => setQuickDomain(e.target.value)}
-              placeholder={demoMode ? 'targetcompany.com' : 'company.com'}
-              className="w-full rounded-lg border border-border bg-bg-terminal py-3 pl-9 pr-3 font-mono text-sm focus:border-brand-purple focus:outline-none"
-            />
-          </div>
-          <button type="submit" className="btn-primary !px-5 !py-3">
-            Scan <ArrowRight className="h-4 w-4" />
-          </button>
-        </form>
+        <Link to="/scan" className="btn-primary !px-5 self-start sm:self-auto">
+          <Radar className="h-4 w-4" /> Scan Now
+        </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard
-          label="Critical findings"
-          value={critical}
-          tone="danger"
-          icon={ShieldAlert}
-          extra={
-            arsDelta !== null ? (
-              <span
+      {/* Row 1 — 4 stat cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ARSStatCard score={latestScan?.ars_score ?? null} delta={arsDelta} />
+        <ActiveTrapsCard active={activeDecoys} total={decoys.length} triggeredThisWeek={thisWeekAlerts} />
+        <ThreatsInterceptedCard count={alerts.length} criticalCount={criticalAlerts} />
+        <MTTDCard minutes={2.3} percentileFaster={83} />
+      </div>
+
+      {/* Row 2 — Threat graph + Recent alerts */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <GlassCard className="lg:col-span-2 p-5">
+          <ThreatActivityGraph />
+        </GlassCard>
+        <GlassCard className="p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-text-muted">
+              <Bell className="h-3.5 w-3.5 text-red-400" /> Recent Alerts
+            </div>
+            <Link to="/alerts" className="text-xs text-indigo-400 hover:underline">
+              View all →
+            </Link>
+          </div>
+          <RecentAlertsFeed alerts={alerts} />
+        </GlassCard>
+      </div>
+
+      {/* Row 3 — Radar + Quick scan + Trap performance */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <GlassCard className="p-5">
+          <AttackVectorRadar />
+        </GlassCard>
+        <GlassCard className="p-5">
+          <QuickScanCard recentScans={scans} />
+        </GlassCard>
+        <GlassCard className="p-5">
+          <TrapPerformanceCard decoys={decoys} />
+        </GlassCard>
+      </div>
+
+      {/* Breach window banner if score critical */}
+      {latestScan && latestScan.ars_score >= 60 && (
+        <GlassCard glow="red" className="p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/15 text-red-400">
+                <ShieldAlert className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-red-400">⚡ BREACH WINDOW OPEN</div>
+                <div className="text-sm text-text-secondary mt-0.5">
+                  Estimated exploit time: <span className="font-mono text-amber-400">{latestScan.estimated_time_to_exploit_hours}h</span> — based on your current ARS score.
+                </div>
+              </div>
+            </div>
+            <Link to="/phantomshield" className="btn-danger !px-5 self-start sm:self-auto">
+              <ShieldHalf className="h-4 w-4" /> Deploy Shield
+            </Link>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Onboarding checklist */}
+      {scans.length === 0 && !demoMode && (
+        <GlassCard className="p-5">
+          <div className="mb-4 text-sm font-semibold text-text-primary">Get started with MirrorTrap</div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: 'Run your first scan', to: '/scan', done: scans.length > 0, icon: Radar },
+              { label: 'Deploy PhantomShield', to: '/phantomshield', done: activeDecoys > 0, icon: ShieldCheck },
+              { label: 'Monitor alerts', to: '/alerts', done: alerts.length > 0, icon: Activity },
+            ].map((step, i) => (
+              <Link
+                key={step.label}
+                to={step.to}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-widest',
-                  arsDelta > 0
-                    ? 'bg-brand-danger/15 text-brand-danger'
-                    : arsDelta < 0
-                      ? 'bg-brand-success/15 text-brand-success'
-                      : 'bg-white/5 text-slate-400',
+                  'flex items-center gap-3 rounded-xl border p-4 transition-all',
+                  step.done
+                    ? 'border-emerald-500/30 bg-emerald-500/5 opacity-70'
+                    : 'hover:border-indigo-500/30 hover:bg-indigo-500/5',
                 )}
-                title="ARS change from previous scan"
+                style={{ borderColor: step.done ? undefined : 'rgba(255,255,255,0.06)' }}
               >
-                {arsDelta > 0 ? (
-                  <TrendingUp className="h-3 w-3" />
-                ) : arsDelta < 0 ? (
-                  <TrendingDown className="h-3 w-3" />
-                ) : null}
-                {arsDelta > 0 ? '+' : ''}
-                {arsDelta} ARS
-              </span>
-            ) : null
-          }
-        />
-        <StatCard label="Active decoys" value={`${activeDecoys}/4`} tone="success" icon={ShieldCheck} />
-        <StatCard label="Alerts today" value={today} tone="amber" icon={Bell} />
-        <StatCard label="Domains scanned" value={scans.length} tone="purple" icon={Globe} />
-      </div>
-
-      {showBreachBanner ? (
-        <BreachCountdown hours={latestScan.estimated_time_to_exploit_hours} />
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        <div className="space-y-4">
-          <div
-            className="card flex flex-col items-center justify-center p-6"
-            title="ARS = Attack Readiness Score — a 0-100 composite of your OSINT exposure. Lower is better."
-          >
-            {latestScan ? (
-              <>
-                <ArsGauge score={latestScan.ars_score} />
-                <div className="mt-3 text-center">
-                  <div className="font-mono text-sm text-slate-300">{latestScan.domain}</div>
-                  <div className="text-[11px] uppercase tracking-widest text-slate-500">
-                    {formatDate(latestScan.timestamp)}
-                  </div>
-                  {arsDelta !== null ? (
-                    <div
-                      className={cn(
-                        'mt-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-widest',
-                        arsDelta > 0
-                          ? 'bg-brand-danger/15 text-brand-danger'
-                          : arsDelta < 0
-                            ? 'bg-brand-success/15 text-brand-success'
-                            : 'bg-white/5 text-slate-400',
-                      )}
-                    >
-                      {arsDelta > 0 ? '▲' : arsDelta < 0 ? '▼' : '—'}{' '}
-                      {arsDelta > 0 ? '+' : ''}
-                      {arsDelta} from last scan
-                    </div>
-                  ) : null}
-                </div>
-                <Link to="/scan" className="btn-ghost mt-4">
-                  Rescan <ArrowRight className="h-3.5 w-3.5" />
-                </Link>
-              </>
-            ) : (
-              <div className="text-center">
-                <div className="text-sm text-slate-400">No scan yet</div>
-                <Link to="/scan" className="btn-primary mt-3">
-                  Run your first scan
-                </Link>
-              </div>
-            )}
-          </div>
-
-          <LiveTicker />
-        </div>
-
-        <div className="space-y-4">
-          <div className="card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-slate-400">
-                Findings summary (latest scan)
-              </div>
-              <Link to="/scan" className="text-xs text-brand-purple hover:underline">
-                View scan →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((sev) => (
-                <div key={sev} className="rounded-lg border border-border bg-bg-terminal/50 p-3">
-                  <SeverityBadge severity={sev} />
-                  <div className="mt-2 font-mono text-2xl tabular-nums text-white">
-                    {findingCounts[sev] ?? 0}
+                <step.icon className={cn('h-5 w-5', step.done ? 'text-emerald-400' : 'text-text-muted')} />
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest text-text-muted">Step {i + 1}</div>
+                  <div className={cn('text-sm font-medium', step.done ? 'text-text-muted line-through' : 'text-text-primary')}>
+                    {step.label}
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-slate-400">Recent activity</div>
-              <Link to="/alerts" className="text-xs text-brand-purple hover:underline">
-                All alerts →
               </Link>
-            </div>
-            {alerts.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-border p-4 text-sm text-slate-400">
-                No tripwires fired yet. Deploy PhantomShield to start catching reconnaissance.
-              </div>
-            ) : (
-              <ul className="space-y-2">
-                {alerts.slice(0, 5).map((a) => (
-                  <li
-                    key={a.id}
-                    className="flex items-start gap-3 rounded-lg border border-border bg-bg-terminal/40 p-3"
-                  >
-                    <Zap
-                      className={cn(
-                        'mt-0.5 h-4 w-4',
-                        a.severity === 'CRITICAL' ? 'text-brand-danger' : 'text-brand-amber',
-                      )}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm text-slate-100">
-                        <span className="font-semibold">{a.asset_used}</span>{' '}
-                        <span className="text-slate-500">touched by</span>{' '}
-                        <span className="font-mono">{a.ip}</span>
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        {a.country_flag} {a.country} · {formatDate(a.timestamp)}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            ))}
           </div>
-
-          <div className="card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="text-xs uppercase tracking-widest text-slate-400">Scan history</div>
-              <Link to="/reports" className="text-xs text-brand-purple hover:underline">
-                All reports →
-              </Link>
-            </div>
-            {scans.length === 0 ? (
-              <div className="text-sm text-slate-400">No scans yet.</div>
-            ) : (
-              <table className="w-full text-left text-sm">
-                <thead className="text-[10px] uppercase tracking-widest text-slate-500">
-                  <tr>
-                    <th className="py-1">Domain</th>
-                    <th className="py-1">When</th>
-                    <th className="py-1">ARS</th>
-                    <th className="py-1">Findings</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[...scans].reverse().slice(0, 5).map((s) => (
-                    <tr key={s.id} className="border-t border-border">
-                      <td className="py-2 font-mono">{s.domain}</td>
-                      <td className="py-2 text-slate-400">{formatDate(s.timestamp)}</td>
-                      <td className="py-2 font-mono text-brand-amber">{s.ars_score}</td>
-                      <td className="py-2 text-slate-300">{s.findings.length}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
-      </div>
+        </GlassCard>
+      )}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { AlertsPage } from '@/pages/AlertsPage';
 import { ReportsPage } from '@/pages/ReportsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { ProtectPage } from '@/pages/ProtectPage';
+import { ReplayPage } from '@/pages/ReplayPage';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
               <Route path="/protect" element={<ProtectPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/replay/:alertId" element={<ReplayPage />} />
             </Route>
           </Route>
 
