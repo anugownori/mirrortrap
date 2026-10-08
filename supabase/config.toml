@@ -1,0 +1,9 @@
+[functions.verify-domain]
+verify_jwt = true
+
+[functions.verified-scan]
+verify_jwt = true
+
+# Public honeytoken endpoint: possession of 256-bit token is the event trigger.
+[functions.tripwire-collect]
+verify_jwt = false

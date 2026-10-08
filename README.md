@@ -1,135 +1,64 @@
-# MirrorTrap
+# MirrorTrap — verified attack-surface monitoring and canary URL telemetry
 
-**See yourself through a hacker's eyes.**
+**Prepared for:** Anushree N (security implementation and project documentation)
 
-MirrorTrap is a full-stack cybersecurity SaaS that scans a company's public
-attack surface, deploys AI-generated decoy assets (honey AWS keys, admin
-portals, tracking URLs), and catches attackers in real time — before they
-reach real systems.
+MirrorTrap is a defensive cybersecurity web application built with React, TypeScript, Supabase Auth, PostgreSQL Row Level Security, and Supabase Edge Functions. This revised source does **not** generate fake incidents, random activity charts, guessed breach times, or bypass authentication. Public-source findings and actual canary URL requests are stored separately with timestamps.
 
-![MirrorTrap](./public/favicon.svg)
+## What it actually does
 
----
+- Authenticated sign-up/sign-in through Supabase; no local/demo sign-in.
+- Register a domain and prove control using a DNS TXT record.
+- Run a **passive, permission-gated** exposure check for that domain.
+- Collect public DNS records, certificate-transparency names, and third-party Shodan InternetDB observations (where services are available).
+- Store findings, source status/errors, and heuristic exposure index in PostgreSQL using server-side privileges.
+- Generate a 256-bit random canary URL, store only its SHA-256 hash, record HTTP requests that reach the endpoint, and revoke the token.
+- View recorded scans, provider failures, and canary events. Export an evidence JSON file.
 
-## 🎬 4-minute Walkthrough Video — **▶ [Watch on YouTube](https://youtu.be/_gOj0ZJIpw4)**
-
-[![Watch the MirrorTrap walkthrough on YouTube](https://img.youtube.com/vi/_gOj0ZJIpw4/maxresdefault.jpg)](https://youtu.be/_gOj0ZJIpw4)
-
-> 🎥 **Primary watch link:** **https://youtu.be/_gOj0ZJIpw4**
-> Backup MP4 in this repo: [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4) (9.7 MB · plays inline on the GitHub blob page)
-
-<p align="center">
-  <video src="https://github.com/ganesh2317/Mirror-trap/raw/devin/1776873610-mirrortrap-initial/walkthrough/MirrorTrap_Walkthrough.mp4" controls width="720"></video>
-</p>
-
-| | |
-|---|---|
-| 📺 YouTube | **https://youtu.be/_gOj0ZJIpw4** |
-| 🎥 Video file | [`walkthrough/MirrorTrap_Walkthrough.mp4`](./walkthrough/MirrorTrap_Walkthrough.mp4) — 224 s · 1280×800 · 9.7 MB |
-| 🎙️ Voice-over | [`walkthrough/audio/voiceover.mp3`](./walkthrough/audio/voiceover.mp3) — Sarvam `bulbul:v3`, speaker `shubh` |
-| 📜 Script | [`docs/WALKTHROUGH_SCRIPT.md`](./docs/WALKTHROUGH_SCRIPT.md) — 11 time-coded segments |
-| 🤖 Recorder | [`walkthrough/walkthrough.py`](./walkthrough/walkthrough.py) — Playwright + ffmpeg pipeline |
-
-See **[`walkthrough/README.md`](./walkthrough/README.md)** for the full segment-by-segment breakdown and reproduce-it-yourself steps.
-
----
-
-## What's inside
-
-- **Landing page** with cinematic hero, live terminal animation, pricing.
-- **Supabase auth** (graceful fallback to local demo auth if env vars are absent).
-- **Scan flow** — animated 5-source OSINT sweep (HIBP, Shodan, crt.sh, GitHub, DNS),
-  ARS score counter, severity-coded findings, and AI dossier.
-- **PhantomShield** — 4 deployable decoys with per-asset logs and a live
-  monitoring terminal feed.
-- **Alerts** — dramatic tripwire-fired UI with behavior analysis, classification,
-  and a probable attack-path timeline. One-click "Simulate Attack" for demos.
-- **Reports** — Recharts ARS trend chart, scan history, downloadable HTML
-  reports (print-to-PDF).
-- **Dashboard** — animated ARS gauge, stat cards, recent alerts, scan history,
-  and a quick-scan input bar.
-- **Demo Mode** — preloads a full `targetcompany.com` dataset across the app.
-  Toggle with the navbar button or press <kbd>D</kbd> anywhere.
-
-## Tech
-
-- React 19 + TypeScript
-- Tailwind CSS 3 + tailwindcss-animate
-- React Router v6
-- Supabase JS SDK (auth + data)
-- Recharts (trend chart)
-- Lucide React (icons)
-- Radix UI primitives (Switch)
+**Interpretation limits:** A public IP, a certificate log hostname, or a third-party indexed port is not by itself a confirmed vulnerability. A request to a canary URL is not proof that a malicious attacker visited it. The exposure index is a transparent heuristic, not a validated model or a risk prediction.
 
 ## Getting started
 
-```bash
-npm install
-npm run dev
-# → http://localhost:5173
-```
+Requires Node.js compatible with Vite 8 (Node >=20.19 or >=22.12), npm, and a Supabase project. You need a domain for which you can publish DNS TXT records.
 
-### Supabase (optional)
+1. Create a Supabase project.
+2. Apply `supabase/migrations/001_production.sql` through the SQL editor.
+3. Deploy the Edge Functions as documented in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). The tripwire endpoint must allow unauthenticated requests, while the two administrative endpoints require JWT authentication.
+4. Copy `.env.example` to `.env.local` and enter the public URL and publishable/anon key. **Never paste a service-role key into the frontend.**
+5. Run:
 
-Create a `.env.local` file:
+   ```bash
+   npm ci
+   npm run build
+   npm run dev
+   ```
 
-```
-VITE_SUPABASE_URL=https://<project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon-key>
-```
+6. Open `http://localhost:5173`, sign up, verify your email if required, and sign in.
+7. Register your authorized domain; publish the TXT record shown in Assets and click **Verify DNS**.
+8. Click **Scan verified domain**. Expand findings and provider statuses; export the JSON evidence.
+9. Create a canary URL, copy it immediately, and visit it from a browser you control. Its Edge Function intentionally returns `404`, but the request should appear on the **Security events** page after refreshing. Revoke the URL to stop further collection.
 
-Suggested tables (all user-scoped via RLS):
+## Application structure
 
-```sql
-create table scans (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  domain text not null,
-  ars_score int not null,
-  findings_json jsonb not null,
-  created_at timestamptz not null default now()
-);
+| Location | Purpose |
+|---|---|
+| `src/App.tsx` | Modern authenticated UI, real stored data, and defensive workflows |
+| `src/lib/supabase.ts` | Supabase browser client with public credentials only |
+| `supabase/migrations/001_production.sql` | RLS database schema |
+| `supabase/functions/verify-domain` | Server-side DNS ownership validation |
+| `supabase/functions/verified-scan` | Authenticated source collection and evidence persistence |
+| `supabase/functions/tripwire-collect` | Public, token-addressed, rate-limited HTTP request event receiver |
+| `docs/DEPLOYMENT.md` | Step-by-step launch and environment setup |
+| `docs/TEST_PLAN.md` | Real-world acceptance testing checklist |
+| `PRODUCTION_READINESS.md` | Honest validation and risk status |
 
-create table alerts (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  severity text not null,
-  ip text not null,
-  asset_used text not null,
-  payload_json jsonb not null,
-  created_at timestamptz not null default now()
-);
+## Safety and authorization
 
-create table decoys (
-  id text primary key,
-  user_id uuid references auth.users not null,
-  active boolean not null default false,
-  meta_json jsonb,
-  updated_at timestamptz not null default now()
-);
-```
+Verify domain ownership before collection. Do not probe, attack, or deploy traps on systems without permission. Canary URLs may capture network metadata of visitors; disclose and retain data responsibly. Public-source observation should be confirmed before remediation. Do not use this application as a substitute for continuous managed security monitoring.
 
-Without Supabase configured, the app runs in fully-mocked local mode — any
-email + password logs in, all state is persisted to `localStorage`.
+## Source and attribution
 
-### Keyboard shortcuts
+This version was adapted from the user-supplied archive associated with <https://github.com/anugownori/mirrortrap>. The upstream README stated **“All rights reserved — built for a hackathon demo”** and no permissive root license was present in the reviewed repository. The upstream author retains their rights. Before publishing or submitting this derivative as an original source package, **obtain permission from the rights holder and accurately distinguish original code from Anushree N's modifications**. Do not remove relevant copyright or ownership notices.
 
-- <kbd>D</kbd> — toggle Demo Mode
-- <kbd>/</kbd> — focus the quick-scan bar
+## Verification caveat
 
-## Scripts
-
-- `npm run dev` — Vite dev server
-- `npm run build` — typecheck + production build
-- `npm run lint` — ESLint
-- `npm run preview` — preview the production build
-
-## Design
-
-- Background `#0D0B1A`, surface `#1A1730`, terminal `#0A0814`
-- Primary `#7F77DD`, amber `#EF9F27`, danger `#F09595`, success `#1D9E75`
-- Inter for UI, JetBrains Mono for terminals and code
-
-## License
-
-All rights reserved — built for a hackathon demo.
+This workspace does not have internet access to the npm registry or a configured Supabase project. Therefore the frontend production build, live Edge deployment, DNS verification against a real domain, and canary event smoke test have **not** been executed here. See [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md). No completion claim should exceed the evidence documented there.
